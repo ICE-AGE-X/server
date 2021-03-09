@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -578,7 +578,7 @@ enum MangosStrings
     LANG_YOURS_EXPLORE_SET_ALL          = 553,
     LANG_YOURS_EXPLORE_SET_NOTHING      = 554,
 
-    //                                    555,              // not used
+    LANG_COMMAND_OPCODEGOT              = 555,
     //                                    556,              // not used
     LANG_YOURS_LEVEL_UP                 = 557,
     LANG_YOURS_LEVEL_DOWN               = 558,
@@ -713,7 +713,6 @@ enum MangosStrings
     LANG_BG_QUEUE_ANNOUNCE_SELF         = 711,
     LANG_BG_QUEUE_ANNOUNCE_WORLD        = 712,
     LANG_YOUR_ARENA_LEVEL_REQ_ERROR     = 713,
-    // LANG_YOUR_ARENA_LEVEL_REQ_ERROR   = 713,
     LANG_BG_IS_DISABLED                 = 714,
     LANG_YOUR_BG_LEVEL_REQ_ERROR        = 715,
     //                                  = 716, not used
@@ -963,7 +962,9 @@ enum MangosStrings
 
     // Reserved for old client release branches specific strings
     // Room for old clients 2.x           1300-1399 not used
-    // Room for old clients 1.x           1400-1499 not used
+    // Room for old clients 1.x           1400-1439 not used
+    LANG_COMMAND_TICKETUPDATED          = 1440,
+    // Room for old clients 1.x           1441-1499 not used
 
     // Level 2 (continue)
     LANG_POOL_CHANCE_POOL_LIST_CONSOLE  = 1500,
@@ -985,7 +986,10 @@ enum MangosStrings
     LANG_COMMAND_TICKET_OFFLINE_INFO    = 1516,
     LANG_COMMAND_TICKET_COUNT_ALL       = 1517,
     LANG_COMMAND_TICKET_ACCEPT_STATE    = 1518,
-    // Room for more Level 2              1519-1599 not used
+    LANG_COMMAND_TICKET_RESPOND_MAIL_SUBJECT = 1519,
+    LANG_COMMAND_TICKET_RESPOND_MAIL_SIGNATURE = 1520,
+    LANG_COMMAND_TICKETCLOSED_PLAYER_NOTIF  = 1521,
+    // Room for more Level 2              1522-1599 not used
 
     // Outdoor PvP
     LANG_OPVP_EP_CAPTURE_NPT_H          = 1600,

@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -163,7 +163,9 @@ void WorldSession::HandleUseItemOpcode(WorldPacket& recvPacket)
 
         // send spell error
         if (SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellid))
+        {
             Spell::SendCastResult(_player, spellInfo, cast_count, SPELL_FAILED_BAD_TARGETS);
+        }
         return;
     }
 
@@ -195,7 +197,9 @@ void WorldSession::HandleOpenItemOpcode(WorldPacket& recvPacket)
 
     // ignore for remote control state
     if (!pUser->IsSelfMover())
-        { return; }
+    {
+        return;
+    }
 
     Item* pItem = pUser->GetItemByPos(bagIndex, slot);
     if (!pItem)
@@ -234,7 +238,7 @@ void WorldSession::HandleOpenItemOpcode(WorldPacket& recvPacket)
 
     if (pItem->HasFlag(ITEM_FIELD_FLAGS, ITEM_DYNFLAG_WRAPPED))// wrapped?
     {
-        QueryResult* result = CharacterDatabase.PQuery("SELECT entry, flags FROM character_gifts WHERE item_guid = '%u'", pItem->GetGUIDLow());
+        QueryResult* result = CharacterDatabase.PQuery("SELECT `entry`, `flags` FROM `character_gifts` WHERE `item_guid` = '%u'", pItem->GetGUIDLow());
         if (result)
         {
             Field* fields = result->Fetch();
@@ -256,11 +260,13 @@ void WorldSession::HandleOpenItemOpcode(WorldPacket& recvPacket)
 
         static SqlStatementID delGifts ;
 
-        SqlStatement stmt = CharacterDatabase.CreateStatement(delGifts, "DELETE FROM character_gifts WHERE item_guid = ?");
+        SqlStatement stmt = CharacterDatabase.CreateStatement(delGifts, "DELETE FROM `character_gifts` WHERE `item_guid` = ?");
         stmt.PExecute(pItem->GetGUIDLow());
     }
     else
-        { pUser->SendLoot(pItem->GetObjectGuid(), LOOT_CORPSE); }
+    {
+        pUser->SendLoot(pItem->GetObjectGuid(), LOOT_CORPSE);
+    }
 }
 
 void WorldSession::HandleGameObjectUseOpcode(WorldPacket& recv_data)
@@ -273,11 +279,15 @@ void WorldSession::HandleGameObjectUseOpcode(WorldPacket& recv_data)
 
     // ignore for remote control state
     if (!_player->IsSelfMover())
-        { return; }
+    {
+        return;
+    }
 
     GameObject* obj = GetPlayer()->GetMap()->GetGameObject(guid);
     if (!obj)
-        { return; }
+    {
+        return;
+    }
 
     // Additional check preventing exploits (ie loot despawned chests)
     if (!obj->isSpawned())
@@ -362,7 +372,9 @@ void WorldSession::HandleCastSpellOpcode(WorldPacket& recvPacket)
     {
         // if rank not found then function return NULL but in explicit cast case original spell can be casted and later failed with appropriate error message
         if (SpellEntry const* actualSpellInfo = sSpellMgr.SelectAuraRankForLevel(spellInfo, target->getLevel()))
-            { spellInfo = actualSpellInfo; }
+        {
+            spellInfo = actualSpellInfo;
+        }
     }
 
     Spell* spell = new Spell(_player, spellInfo, false);
@@ -379,14 +391,20 @@ void WorldSession::HandleCancelCastOpcode(WorldPacket& recvPacket)
     // ignore for remote control state (for player case)
     Unit* mover = _player->GetMover();
     if (mover != _player && mover->GetTypeId() == TYPEID_PLAYER)
-        { return; }
+    {
+        return;
+    }
 
     // FIXME: hack, ignore unexpected client cancel Deadly Throw cast
     if (spellId == 26679)
+    {
         return;
+    }
 
     if (_player->IsNonMeleeSpellCasted(false))
-        { _player->InterruptNonMeleeSpells(false, spellId); }
+    {
+        _player->InterruptNonMeleeSpells(false, spellId);
+    }
 }
 
 void WorldSession::HandleCancelAuraOpcode(WorldPacket& recvPacket)
@@ -396,13 +414,19 @@ void WorldSession::HandleCancelAuraOpcode(WorldPacket& recvPacket)
 
     SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellId);
     if (!spellInfo)
-        { return; }
+    {
+        return;
+    }
 
     if (spellInfo->HasAttribute(SPELL_ATTR_CANT_CANCEL))
-        { return; }
+    {
+        return;
+    }
 
     if (IsPassiveSpell(spellInfo))
-        { return; }
+    {
+        return;
+    }
 
     if (!IsPositiveSpell(spellId))
     {
@@ -423,10 +447,14 @@ void WorldSession::HandleCancelAuraOpcode(WorldPacket& recvPacket)
 
             // this also include case when aura not found
             if (!allow)
-                { return; }
+            {
+                return;
+            }
         }
         else
-            { return; }
+        {
+            return;
+        }
     }
 
     // channeled spell case (it currently casted then)
@@ -434,7 +462,9 @@ void WorldSession::HandleCancelAuraOpcode(WorldPacket& recvPacket)
     {
         if (Spell* curSpell = _player->GetCurrentSpell(CURRENT_CHANNELED_SPELL))
             if (curSpell->m_spellInfo->Id == spellId)
-                { _player->InterruptSpell(CURRENT_CHANNELED_SPELL); }
+            {
+                _player->InterruptSpell(CURRENT_CHANNELED_SPELL);
+            }
         return;
     }
 
@@ -442,7 +472,9 @@ void WorldSession::HandleCancelAuraOpcode(WorldPacket& recvPacket)
 
     // not own area auras can't be cancelled (note: maybe need to check for aura on holder and not general on spell)
     if (holder && holder->GetCasterGuid() != _player->GetObjectGuid() && HasAreaAuraEffect(holder->GetSpellProto()))
-        { return; }
+    {
+        return;
+    }
 
     // non channeled case
     _player->RemoveAurasDueToSpellByCancel(spellId);
@@ -458,7 +490,9 @@ void WorldSession::HandlePetCancelAuraOpcode(WorldPacket& recvPacket)
 
     // ignore for remote control state
     if (!_player->IsSelfMover())
-        { return; }
+    {
+        return;
+    }
 
     SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellId);
     if (!spellInfo)
@@ -511,7 +545,9 @@ void WorldSession::HandleCancelChanneling(WorldPacket& recv_data)
     // ignore for remote control state (for player case)
     Unit* mover = _player->GetMover();
     if (mover != _player && mover->GetTypeId() == TYPEID_PLAYER)
-        { return; }
+    {
+        return;
+    }
 
     _player->InterruptSpell(CURRENT_CHANNELED_SPELL);
 }
@@ -524,13 +560,19 @@ void WorldSession::HandleTotemDestroyed(WorldPacket& recvPacket)
 
     // ignore for remote control state
     if (!_player->IsSelfMover())
-        { return; }
+    {
+        return;
+    }
 
     if (int(slotId) >= MAX_TOTEM_SLOT)
-        { return; }
+    {
+        return;
+    }
 
     if (Totem* totem = GetPlayer()->GetTotem(TotemSlot(slotId)))
-        { totem->UnSummon(); }
+    {
+        totem->UnSummon();
+    }
 }
 
 void WorldSession::HandleSelfResOpcode(WorldPacket& /*recv_data*/)
@@ -541,7 +583,9 @@ void WorldSession::HandleSelfResOpcode(WorldPacket& /*recv_data*/)
     {
         SpellEntry const* spellInfo = sSpellStore.LookupEntry(_player->GetUInt32Value(PLAYER_SELF_RES_SPELL));
         if (spellInfo)
-            { _player->CastSpell(_player, spellInfo, false); }
+        {
+            _player->CastSpell(_player, spellInfo, false);
+        }
 
         _player->SetUInt32Value(PLAYER_SELF_RES_SPELL, 0);
     }
@@ -557,12 +601,16 @@ void WorldSession::HandleGetMirrorimageData(WorldPacket& recv_data)
     Creature* pCreature = _player->GetMap()->GetAnyTypeCreature(guid);
 
     if (!pCreature)
+    {
         return;
+    }
 
     Unit::AuraList const& images = pCreature->GetAurasByType(SPELL_AURA_MIRROR_IMAGE);
 
     if (images.empty())
+    {
         return;
+    }
 
     Unit* pCaster = images.front()->GetCaster();
 
@@ -595,9 +643,13 @@ void WorldSession::HandleGetMirrorimageData(WorldPacket& recv_data)
         data << (uint32)pPlayer->GetGuildId();
 
         if (pPlayer->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_HELM))
+        {
             data << (uint32)0;
+        }
         else
+        {
             data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_HEAD);
+        }
 
         data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_SHOULDERS);
         data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_BODY);
@@ -609,9 +661,13 @@ void WorldSession::HandleGetMirrorimageData(WorldPacket& recv_data)
         data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_HANDS);
 
         if (pPlayer->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_HIDE_CLOAK))
+        {
             data << (uint32)0;
+        }
         else
+        {
             data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_BACK);
+        }
 
         data << (uint32)pPlayer->GetItemDisplayIdInSlot(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_TABARD);
     }
@@ -630,7 +686,9 @@ void WorldSession::HandleGetMirrorimageData(WorldPacket& recv_data)
         data << (uint32)0;
 
         for (int i = 0; i < 11; ++i)
+        {
             data << (uint32)0;
+        }
     }
 
     SendPacket(&data);

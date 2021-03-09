@@ -3,8 +3,7 @@
 # MaNGOS Build Automation Script                                              #
 # Written By: Ryan Ashley                                                     #
 # Updated By: Cedric Servais                                                  #
-# Copyright (c) 2014-2016 MaNGOS Project                                      #
-# https://getmangos.eu/                                                       #
+# Copyright (C) 2014-2021 MaNGOS https://getmangos.eu/                        #
 #                                                                             #
 # This program is free software; you can redistribute it and/or modify        #
 # it under the terms of the GNU General Public License as published by        #
@@ -38,7 +37,17 @@ P_TOOLS="0"
 P_SD3="1"
 P_ELUNA="1"
 P_BOTS="0"
+CMAKE_CMD="cmake"
 
+
+function UseCmake3()
+{
+    # set the command to cmake3 if its there
+    which cmake3
+    if [ $? -eq 0 ]; then
+        CMAKE_CMD="cmake3"
+    fi
+}
 
 # Function to test for dialog
 function UseDialog()
@@ -56,10 +65,10 @@ function UseDialog()
 function CheckRoot()
 {
   if [ "$(id -u)" != "0" ]; then
-	  Log "This script can only be used as root!" 1
-	  exit 1
+      Log "This script can only be used as root!" 1
+      exit 1
   else
-	  Log "User is root, check passed" 0
+      Log "User is root, check passed" 0
   fi
 }
 
@@ -123,41 +132,42 @@ function GetPrerequisites()
 {
   # First, we need to check the installer.
   installer=0
-  
+
   which apt-get
-  
+
   if [ $? -ne 0 ]; then
     Log "apt-get isn't the installer by default" 1
   else
     installer=1
-	apt-get -y install git lsb-release curl
+  # On a fresh OS boot (EC2) libace was not found without first updating 
+    apt-get update -y && apt-get -y install git lsb-release curl
   fi
-  
+
   which yum
-  
+
   if [ $? -ne 0 ]; then
     Log "yum isn't the installer by default" 1
   else
-	installer=1
-	yum -y install git redhat-lsb curl
+    installer=1
+    yum -y install git redhat-lsb curl
   fi
-  
+
   which aptitude
   if [ $? -ne 0 ]; then
     Log "aptitude isn't the installer by default" 1
   else
     installer=1
-	aptitude -y install git lsb-release curl
+    aptitude -y install git lsb-release curl
   fi
 
   # Then, let's check that we have the necessary tools to define the OS version.
   which lsb_release
-  
+
   if [ $? -ne 0 ]; then
     Log "Cannot define your OS distribution and version." 1
     return 0
-  fi  
-  
+  fi
+
   local OS=$(lsb_release -si)
   local VER=$(lsb_release -sc)
   local OS_VER=1
@@ -170,7 +180,7 @@ function GetPrerequisites()
   if [ $? -ne 0 ]; then
     Log "User declined to install required tools and development libraries." 1
     return 0
-  fi 
+  fi
 
   # Inform the user of the need for root access
   $DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Install Required Dependencies" \
@@ -223,42 +233,58 @@ function GetPrerequisites()
       case ${VER} in
         "precise")
           # Ubuntu 12.04 LTS
-          su -c "apt-get -y install curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+          su -c "apt-get -y install build-essential curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
           ;;
         "trusty")
           # Ubuntu 14.04 LTS
-          su -c "apt-get -y install curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+          su -c "apt-get -y install build-essential curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
           ;;
         "xenial")
           # Ubuntu 16.04 LTS
-          su -c "apt-get -y install curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+          su -c "apt-get -y install build-essential curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
           ;;
         "yakkety")
           # Ubuntu 16.10
-          su -c "apt-get -y install curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+          su -c "apt-get -y install build-essential curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
           ;;
+    "zesty")
+      # Ubuntu 17.04
+      su -c "apt-get -y install build-essential curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+      ;;
+    "artful")
+      # Ubuntu 17.10
+      su -c "apt-get -y install build-essential curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+      ;;
+    "bionic")
+      # Ubuntu 18.04 LTS
+      su -c "apt-get -y install build-essential curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+      ;;
+    "disco")
+      # Ubuntu 19.04
+      su -c "apt-get -y install build-essential curl autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+      ;;
         *)
           OS_VER=0
           ;;
-      esac      
+      esac
       ;;
     "Debian")
       case ${VER} in
         "jessie")
           # Debian 8.0 "current"
-          su -c "aptitude -y install curl build-essential autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+          su -c "aptitude -y install curl build-essential autoconf automake cmake libbz2-dev libace-dev libssl-dev default-libmysqlclient-dev libtool" root
           ;;
         "stretch")
           # Debian Next
-          su -c "aptitude -y install curl build-essential autoconf automake cmake libbz2-dev libace-dev libssl-dev libmysqlclient-dev libtool" root
+          su -c "aptitude -y install curl build-essential autoconf automake cmake libbz2-dev libace-dev libssl-dev default-libmysqlclient-dev libtool" root
           ;;
         *)
           OS_VER=0
           ;;
-      esac      
-      ;;    
+      esac
+      ;;
     "RedHatEntrepriseServer")
-      case ${VER} in        
+      case ${VER} in
         "santiago")
           # Red Hat 6.x
           su -c "yum -y install curl build-essential linux-headers-$(uname -r) autoconf automake cmake libbz2-dev libace-dev ace-6.3.3 libssl-dev libmysqlclient-dev libtool zliblg-dev" root
@@ -272,53 +298,54 @@ function GetPrerequisites()
           ;;
       esac
       ;;
-	"CentOS")
-      case ${VER} in        
+    "CentOS")
+      case ${VER} in
         "Core")
           # Default CentOS - Adding necessary RPM third-party.
-		  rpm -Uv ftp://ftp.pbone.net/mirror/ftp5.gwdg.de/pub/opensuse/repositories/devel:/libraries:/ACE:/micro/CentOS_7/x86_64/ace-6.3.3-55.1.x86_64.rpm
-		  rpm -Uv ftp://rpmfind.net/linux/centos/7.3.1611/os/x86_64/Packages/perl-Net-Telnet-3.03-19.el7.noarch.rpm
-		  rpm -Uv ftp://ftp.pbone.net/mirror/ftp5.gwdg.de/pub/opensuse/repositories/devel:/libraries:/ACE:/micro:/versioned/CentOS_7/x86_64/mpc-6.3.3-42.1.x86_64.rpm		  		  
-		  rpm -Uv ftp://rpmfind.net/linux/centos/7.3.1611/os/x86_64/Packages/libtool-2.4.2-21.el7_2.x86_64.rpm
-		  rpm -Uv ftp://ftp.pbone.net/mirror/ftp5.gwdg.de/pub/opensuse/repositories/devel:/libraries:/ACE:/micro/CentOS_7/x86_64/ace-devel-6.3.3-55.1.x86_64.rpm
-          su -c "yum -y install curl autoconf automake cmake ace-devel ace-6.3.3 openssl-devel mysql-devel libtool gcc-c++" root
-          ;;        
+          rpm -Uv ftp://ftp.pbone.net/mirror/ftp5.gwdg.de/pub/opensuse/repositories/devel:/libraries:/ACE:/micro/CentOS_7/x86_64/ace-6.3.3-55.1.x86_64.rpm
+          rpm -Uv ftp://rpmfind.net/linux/centos/7/os/x86_64/Packages/perl-Net-Telnet-3.03-19.el7.noarch.rpm
+          rpm -Uv ftp://ftp.pbone.net/mirror/ftp5.gwdg.de/pub/opensuse/repositories/devel:/libraries:/ACE:/micro:/versioned/CentOS_7/x86_64/mpc-6.3.3-42.1.x86_64.rpm
+          rpm -Uv ftp://rpmfind.net/linux/centos/7/os/x86_64/Packages/libtool-2.4.2-22.el7_3.x86_64.rpm
+          rpm -Uv ftp://ftp.pbone.net/mirror/ftp5.gwdg.de/pub/opensuse/repositories/devel:/libraries:/ACE:/micro/CentOS_7/x86_64/ace-devel-6.3.3-55.1.x86_64.rpm
+          su -c "yum -y install epel-release"
+          su -c "yum -y install curl autoconf automake cmake3 ace-devel ace-6.3.3 openssl-devel mysql-devel libtool gcc-c++" root
+          ;;
         *)
           OS_VER=0
           ;;
       esac
       ;;
     "Fedora")
-      case ${VER} in        
+      case ${VER} in
         "TwentyFive")
           # Fedora 25 - Adding necessary RPM third-party.
-		  su -c "yum -y install autoconf automake libtool gcc-c++" root
-		  # Getting and building ACE. Not provided in RPM for Fedora...
-		  rm -rf ACE-6.3.3.tar.bz2
-		  rm -rf ACE_wrappers
-		  wget ftp://download.dre.vanderbilt.edu/previous_versions/ACE-6.3.3.tar.bz2		  
-		  tar xjvf ACE-6.3.3.tar.bz2
-		  export ACE_ROOT=/root/ACE_wrappers
-		  echo '#include "ace/config-linux.h"' >> $ACE_ROOT/ace/config.h
-		  echo 'include $(ACE_ROOT)/include/makeinclude/platform_linux.GNU' >> $ACE_ROOT/include/makeinclude/platform_macros.GNU
-		  echo 'INSTALL_PREFIX=/usr/local' >> $ACE_ROOT/include/makeinclude/platform_macros.GNU
-		  export LD_LIBRARY_PATH=$ACE_ROOT/lib:$LD_LIBRARY_PATH		  
-		  CD $ACE_ROOT
-		  make
-		  make install
-		  cd ~
-		  # Installing remaining dependencies..
-          su -c "yum -y install cmake openssl-devel mariadb-devel" root		  
-          ;;        
+          su -c "yum -y install autoconf automake libtool gcc-c++" root
+          # Getting and building ACE. Not provided in RPM for Fedora...
+          rm -rf ACE-6.3.3.tar.bz2
+          rm -rf ACE_wrappers
+          wget ftp://download.dre.vanderbilt.edu/previous_versions/ACE-6.3.3.tar.bz2
+          tar xjvf ACE-6.3.3.tar.bz2
+          export ACE_ROOT=/root/ACE_wrappers
+          echo '#include "ace/config-linux.h"' >> $ACE_ROOT/ace/config.h
+          echo 'include $(ACE_ROOT)/include/makeinclude/platform_linux.GNU' >> $ACE_ROOT/include/makeinclude/platform_macros.GNU
+          echo 'INSTALL_PREFIX=/usr/local' >> $ACE_ROOT/include/makeinclude/platform_macros.GNU
+          export LD_LIBRARY_PATH=$ACE_ROOT/lib:$LD_LIBRARY_PATH
+          CD $ACE_ROOT
+          make
+          make install
+          cd ~
+          # Installing remaining dependencies..
+          su -c "yum -y install cmake openssl-devel mariadb-devel" root
+          ;;
         *)
           OS_VER=0
           ;;
       esac
       ;;
-	*)
+    *)
       OS_VER=0
-      ;;	
-  esac    
+      ;;
+  esac
 
   # See if a supported OS was detected
   if [ ${OS_VER} -ne 0 ]; then
@@ -384,7 +411,7 @@ function GetRelease()
       ;;
     5)
       SRCPATH="$ROOTPATH/five/src"
-      INSTPATH="$ROOTPATH/fice"
+      INSTPATH="$ROOTPATH/five"
       DB_PREFIX="five"
       ;;
     *)
@@ -401,55 +428,55 @@ function GetRelease()
 function GetUser()
 {
   local TMPUSER="$USER"
-  
+
   # Set the user
   TMPUSER=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "User to run Mangos" \
      --inputbox "Default: $USER" 8 60 3>&2 2>&1 1>&3)
-     
+
   # Exit if cancelled
   if [ $? -ne 0 ]; then
     Log "User selection was cancelled. No changes have been made to your system." 1
     exit 0
   fi
-  
+
   # Change the user only if it was modified
   if [ ! -z "$TMPUSER" ]; then
     USER="$TMPUSER"
   fi
-  
+
   # Validate user
   id $USER > /dev/null 2>&1
   if [ $? -ne 0 ]; then
     Log "Creating user: $USER" 1
     useradd -m -d /home/$USER $USER > /dev/null 2>&1
-    
+
     if [ $? -ne 0 ]; then
       Log "Error: Failed to create the specified user!" 1
       exit 1
     fi
-    
-		usermod -L $USER > /dev/null 2>&1
+
+        usermod -L $USER > /dev/null 2>&1
   else
     # User already exist, asking to keep the user
     $DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "User already exist" \
       --yesno "Would you like to keep the user \"$USER\"?" 8 60
-      
+
     if [ $? -ne 0 ]; then
       Log "Removing user: $USER" 1
       userdel -r $USER > /dev/null 2>&1
-      
+
       Log "Creating user: $USER" 1
       useradd -m -d /home/$USER $USER > /dev/null 2>&1
-    
+
       if [ $? -ne 0 ]; then
         Log "Error: Failed to create the specified user!" 1
         exit 1
       fi
-    
-		  usermod -L $USER > /dev/null 2>&1
+
+          usermod -L $USER > /dev/null 2>&1
     fi
   fi
-  
+
   ROOTPATH="/home/"$USER
   Log "User: $USER" 0
 }
@@ -549,7 +576,7 @@ function GetPaths()
   else
     # Check for an old installation
     if [ -d "$INSTPATH/bin" ] || [ -d "$INSTPATH/lib" ] || [ -d "$INSTPATH/include" ]; then
- 
+
       # Ask to remove the old installation
       $DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Path already exists" \
         --yesno "Would you like to uninstall the current version of MaNGOS first?" 0 0
@@ -628,9 +655,9 @@ function GetMangos()
         ;;
       *)
         Log "Error: Unknown version to select branch" 1
-        ;;        
+        ;;
     esac
-    
+
     COUNTER=1
     RADIOLIST=""  # variable where we will keep the list entries for radiolist dialog
     for i in $releases; do
@@ -642,18 +669,18 @@ function GetMangos()
       fi
       let COUNTER=COUNTER+1
     done
-    
+
     TMPBRANCH=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Select Branch" \
       --radiolist "Default: $BRANCH" 0 0 $COUNTER \
       $RADIOLIST \
-      3>&2 2>&1 1>&3)    
+      3>&2 2>&1 1>&3)
 
     # Exit if cancelled
     if [ $? -ne 0 ]; then
       Log "Branch selection cancelled. Only the install and source paths have been created." 1
       exit 0
     fi
-    
+
     BRANCH=$(echo $releases | awk '{print $'$TMPBRANCH'}')
 
     # Set the branch
@@ -798,7 +825,7 @@ function GetBuildOptions()
   else
     P_ELUNA="0"
   fi
-  
+
   # See if SOAP will be used
   if [[ $OPTIONS == *8* ]]; then
     P_SOAP="1"
@@ -807,10 +834,10 @@ function GetBuildOptions()
   fi
 
   if [[ $OPTIONS == *9* ]]; then
-    P_PBOTS="1"
+    P_BOTS="1"
   else
-    P_PBOTS="0"
-  fi 
+    P_BOTS="0"
+  fi
 
   # Verify that at least one scripting library is enabled
   if [ $P_SD3 -eq 0 ] && [ $P_ELUNA -eq 0 ]; then
@@ -858,7 +885,9 @@ function BuildMaNGOS()
   # Attempt to configure and build MaNGOS
   Log "Building MaNGOS..." 0
   cd "$SRCPATH/server/linux"
-  cmake .. -DDEBUG=$P_DEBUG -DUSE_STD_MALLOC=$P_STD_MALLOC -DACE_USE_EXTERNAL=$P_ACE_EXTERNAL -DPOSTGRESQL=$P_PGRESQL -DBUILD_TOOLS=$P_TOOLS -DSCRIPT_LIB_ELUNA=$P_ELUNA -DSCRIPT_LIB_SD3=$P_SD3 -DSOAP=$P_SOAP -DPLAYERBOTS=$P_BOTS -DCMAKE_INSTALL_PREFIX="$INSTPATH"
+  # make sure we are using the cmake3
+  UseCmake3
+  $CMAKE_CMD .. -DDEBUG=$P_DEBUG -DUSE_STD_MALLOC=$P_STD_MALLOC -DACE_USE_EXTERNAL=$P_ACE_EXTERNAL -DPOSTGRESQL=$P_PGRESQL -DBUILD_TOOLS=$P_TOOLS -DSCRIPT_LIB_ELUNA=$P_ELUNA -DSCRIPT_LIB_SD3=$P_SD3 -DSOAP=$P_SOAP -DPLAYERBOTS=$P_BOTS -DCMAKE_INSTALL_PREFIX="$INSTPATH"
   make
 
   # Check for an error
@@ -902,7 +931,7 @@ function InstallMaNGOS()
 
 # Function to apply database updates
 function UpdateDatabases()
-{  
+{
   local DB_HOST="$1"
   local DB_TYPE="$2"
   local DB_COMMAND="$3"
@@ -913,7 +942,7 @@ function UpdateDatabases()
   local DB_TOONS="$8"
 
   # Loop through the character files
-  for pFile in $(ls $SRCPATH/database/Character/Updates/$(ls -a $SRCPATH/database/Character/Updates/ | tail -1)/*.sql 2>>/dev/null); do    
+  for pFile in $(ls $SRCPATH/database/Character/Updates/$(ls -a $SRCPATH/database/Character/Updates/ | tail -1)/*.sql 2>>/dev/null); do
     if [ ! -f "$pFile" ]; then
       continue
     fi
@@ -923,15 +952,15 @@ function UpdateDatabases()
     # Notify the user of which updates were and were not applied
     if [ $? -ne 0 ]; then
        Log "Database update \"$pFile\" was not applied!" 0
-	   Log "Database update \"$pFile\" was not applied!" 1
+       Log "Database update \"$pFile\" was not applied!" 1
     else
        Log "Database update \"$pFile\" was successfully applied!" 0
-	   Log "Database update \"$pFile\" was successfully applied!" 1
-    fi          
+       Log "Database update \"$pFile\" was successfully applied!" 1
+    fi
   done
 
-  # Loop through the realm files  
-  for pFile in $(ls $SRCPATH/database/Realm/Updates/$(ls -a $SRCPATH/database/Realm/Updates/ | tail -1)/*.sql 2>>/dev/null); do 
+  # Loop through the realm files
+  for pFile in $(ls $SRCPATH/database/Realm/Updates/$(ls -a $SRCPATH/database/Realm/Updates/ | tail -1)/*.sql 2>>/dev/null); do
     if [ ! -f "$pFile" ]; then
       continue
     fi
@@ -941,15 +970,15 @@ function UpdateDatabases()
     # Notify the user of which updates were and were not applied
     if [ $? -ne 0 ]; then
       Log "Database update \"$pFile\" was not applied!" 0
-	  Log "Database update \"$pFile\" was not applied!" 1
+      Log "Database update \"$pFile\" was not applied!" 1
     else
       Log "Database update \"$pFile\" was successfully applied!" 0
-	  Log "Database update \"$pFile\" was successfully applied!" 1
-    fi          
+      Log "Database update \"$pFile\" was successfully applied!" 1
+    fi
   done
 
   # Loop through the world files
-  for pFile in $(ls $SRCPATH/database/World/Updates/$(ls -a $SRCPATH/database/World/Updates/ | tail -1)/*.sql 2>>/dev/null); do    
+  for pFile in $(ls $SRCPATH/database/World/Updates/$(ls -a $SRCPATH/database/World/Updates/ | tail -1)/*.sql 2>>/dev/null); do
     if [ ! -f "$pFile" ]; then
       continue
     fi
@@ -959,11 +988,11 @@ function UpdateDatabases()
     # Notify the user of which updates were and were not applied
     if [ $? -ne 0 ]; then
       Log "Database update \"$pFile\" was not applied!" 0
-	  Log "Database update \"$pFile\" was not applied!" 1
+      Log "Database update \"$pFile\" was not applied!" 1
     else
       Log "Database update \"$pFile\" was successfully applied!" 0
-	  Log "Database update \"$pFile\" was successfully applied!" 1
-    fi        
+      Log "Database update \"$pFile\" was successfully applied!" 1
+    fi
   done
 }
 
@@ -980,7 +1009,7 @@ function InstallDatabases()
   local DB_TOONS="$8"
 
   # First create the realm database structure
-  $DB_COMMAND $DB_REALM < $SRCPATH/database/Realm/Setup/realmdLoadDB.sql  
+  $DB_COMMAND $DB_REALM < $SRCPATH/database/Realm/Setup/realmdLoadDB.sql
 
   # Check for success
   if [ $? -ne 0 ]; then
@@ -1021,10 +1050,10 @@ function InstallDatabases()
     if [ $? -ne 0 ]; then
       Log "There was an error processing \"$fFile\" during database creation!" 1
       return 1
-	else
-	  Log "The file \"$fFile\" was processed properly" 1
+    else
+      Log "The file \"$fFile\" was processed properly" 1
     fi
-  done  
+  done
 
   # Now apply any updates
   UpdateDatabases $DB_HOST $DB_TYPE "$DB_COMMAND" $DB_USER $DB_UPW $DB_REALM $DB_WORLD $DB_TOONS
@@ -1073,13 +1102,13 @@ function HandleDatabases()
     1 "MySQL" \
     2 "PostgreSQL" \
     3>&2 2>&1 1>&3)
-  
+
   # Exit if cancelled
   if [ $? -ne 0 ]; then
-	Log "Database type selection cancelled. No modifications have been made to your databases." 1	
-	return 0
-  fi      
-  
+    Log "Database type selection cancelled. No modifications have been made to your databases." 1
+    return 0
+  fi
+
   # Get the database hostname or IP address
   DB_TMP=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Database Hostname Or IP Address" \
     --inputbox "Default: localhost" 0 0 3>&2 2>&1 1>&3)
@@ -1127,33 +1156,33 @@ function HandleDatabases()
 
   # Get the database user password
   DB_TMP=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Database User Password" \
-    --passwordbox "Default: $DB_UPW" 8 60 3>&2 2>&1 1>&3)  
+    --passwordbox "Default: $DB_UPW" 8 60 3>&2 2>&1 1>&3)
 
   # Exit if cancelled
   if [ $? -ne 0 ]; then
     Log "DB user PW entry cancelled. No modifications have been made to your databases." 1
     return 0
-  fi  
+  fi
 
   # Set the user password if one was specified
   if [ ! -z "$DB_TMP" ]; then
     DB_UPW="$DB_TMP"
   fi
-   
+
   case "${DB_TYPE}" in
-	"0")
-		DB_COMMAND="mysql -u ${DB_USER} -p${DB_UPW} "
-		;;
-	"1")
-		printf "Confirm your MySQL password\t, "    
-		mysql_config_editor set --login-path=local --host=$DB_HOST --port=$DB_PORT --user=$DB_USER --password --skip-warn
-		DB_COMMAND="mysql --login-path=local -q -s "		
-		;;
-	"2")
-		Log "Currently not supported." 1
-		return 0
-		;;
-  esac  
+    "0")
+        DB_COMMAND="mysql -u ${DB_USER} -p${DB_UPW} "
+        ;;
+    "1")
+        printf "Confirm your MySQL password\t, "
+        mysql_config_editor set --login-path=local --host=$DB_HOST --port=$DB_PORT --user=$DB_USER --password --skip-warn
+        DB_COMMAND="mysql --login-path=local -q -s "
+        ;;
+    "2")
+        Log "Currently not supported." 1
+        return 0
+        ;;
+  esac
 
   # Setup database names based on release
   DB_REALM="$DB_PREFIX$DB_REALM"
@@ -1161,7 +1190,7 @@ function HandleDatabases()
   DB_TOONS="$DB_PREFIX$DB_TOONS"
 
   # Install fresh databases if requested
-  if [ "$DBMODE" = "0" ]; then    
+  if [ "$DBMODE" = "0" ]; then
     # Ask which databases to install/reinstall
     DBSEL=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Select Databases" \
       --checklist "Select which databases should be (re)installed" 0 60 4 \
@@ -1180,7 +1209,7 @@ function HandleDatabases()
     # Remove and create the realm DB if selected
     if [[ $DBSEL == *0* ]]; then
       $DB_COMMAND -e "DROP DATABASE IF EXISTS $DB_REALM;"
-      $DB_COMMAND -e "CREATE DATABASE $DB_REALM;"      
+      $DB_COMMAND -e "CREATE DATABASE $DB_REALM;"
     fi
 
     # Remove and create the world DB if selected
@@ -1188,12 +1217,12 @@ function HandleDatabases()
       $DB_COMMAND -e "DROP DATABASE IF EXISTS $DB_WORLD;"
       $DB_COMMAND -e "CREATE DATABASE $DB_WORLD;"
     fi
-    
+
     # Remove and create the character DB if selected
-    if [[ $DBSEL == *2* ]]; then      
+    if [[ $DBSEL == *2* ]]; then
       $DB_COMMAND -e "DROP DATABASE IF EXISTS $DB_TOONS;"
-      $DB_COMMAND -e "CREATE DATABASE $DB_TOONS;"      
-    fi    
+      $DB_COMMAND -e "CREATE DATABASE $DB_TOONS;"
+    fi
 
     # Validate success
     if [ $? -ne 0 ]; then
@@ -1203,7 +1232,7 @@ function HandleDatabases()
 
     # Finally, populate the databases
     InstallDatabases $DB_HOST $DB_TYPE "$DB_COMMAND" $DB_USER $DB_UPW $DB_REALM $DB_WORLD $DB_TOONS
-    
+
     # Updating the realmlist
     if [[ $DBSEL == *3* ]]; then
       $DB_COMMAND $DB_REALM < $SRCPATH/database/Tools/updateRealm.sql
@@ -1211,7 +1240,7 @@ function HandleDatabases()
   fi
 
   # Update the databases if requested
-  if [ "$DBMODE" = "1" ]; then    
+  if [ "$DBMODE" = "1" ]; then
     UpdateDatabases $DB_HOST $DB_TYPE "$DB_COMMAND" $DB_USER $DB_UPW $DB_REALM $DB_WORLD $DB_TOONS
   fi
 }
@@ -1223,29 +1252,29 @@ function ExtractResources
 
   GAMEPATH=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "WoW Game Path" \
     --inputbox "Please, provide the path to your game directory. Default: $INSTGAMEPATH" 8 60 3>&2 2>&1 1>&3)
-    
+
   if [ -z "$GAMEPATH" ]; then
     GAMEPATH="$INSTGAMEPATH"
   fi
-    
+
   if [ ! -d "$GAMEPATH" ]; then
     Log "There is no game at this location" 1
     exit 1
   fi
-  
+
   ACTIONS=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Select Tasks" \
     --checklist "Please select the extractions to perform" 0 70 3 \
     1 "DBC and Maps" On \
     2 "Vmaps" On \
     3 "Mmaps" On \
     3>&2 2>&1 1>&3)
-    
+
   if [ ! -d "$INSTPATH/bin/tools" ]; then
     Log "The client tools have not been built, cannot extract data" 1
     exit 1
   fi
- 
-#TODO What if DBC are not yet generated ?? 
+
+#TODO What if DBC are not yet generated ??
   if [[ $ACTIONS == *1* ]]; then
     if [ -d "$GAMEPATH/dbc" ]; then
       $DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "DBC and Maps were already generated" \
@@ -1254,25 +1283,25 @@ function ExtractResources
       # Check the user's answer
       if [ $? -eq 0 ]; then
         Log "Deleting DBC and Maps previously generated." 1
-        rm -rf $GAMEPATH/dbc
-        rm -rf $GAMEPATH/maps
-        
+        rm -rf "$GAMEPATH/dbc"
+        rm -rf "$GAMEPATH/maps"
+
         Log "Copying DBC and Maps extractor" 0
         rm -f "$GAMEPATH/map-extractor"
         cp "$INSTPATH/bin/tools/map-extractor" "$GAMEPATH"
 
         Log "Extracting DBC and Maps" 0
-        cd $GAMEPATH
+        cd "$GAMEPATH"
         ./map-extractor
 
         if [ $? -eq 0 ]; then
-          Log "DBC and Maps are extracted" 0 
-          Log "Copying DBC and Maps files to installation directory" 0      
+          Log "DBC and Maps are extracted" 0
+          Log "Copying DBC and Maps files to installation directory" 0
           cp -R "$GAMEPATH/dbc" "$INSTPATH/bin"
           cp -R "$GAMEPATH/maps" "$INSTPATH/bin"
           rm -rf "$GAMEPATH/map-extractor"
           Log "Changing ownership of the extracted directories"
-          chown -R $USER:$USER "$INSTPATH"      
+          chown -R $USER:$USER "$INSTPATH"
         else
           Log "There was an issue while extracting DBC and Maps!" 1
           rm -rf "$GAMEPATH/map-extractor"
@@ -1281,22 +1310,22 @@ function ExtractResources
           exit 1
         fi
       else
-        Log "Copying DBC and Maps files to installation directory" 0      
+        Log "Copying DBC and Maps files to installation directory" 0
         cp -R "$GAMEPATH/dbc" "$INSTPATH/bin"
-        cp -R "$GAMEPATH/maps" "$INSTPATH/bin"                
+        cp -R "$GAMEPATH/maps" "$INSTPATH/bin"
       fi
     else
-	rm -rf $GAMEPATH/map-extractor
-	cp "$INSTPATH/bin/tools/map-extractor" "$GAMEPATH"
-	
-	Log "Extracting DBC and Maps" 0
-	cd $GAMEPATH
-	./map-extractor
-	
-	if [ $? -eq 0 ]; then
-	  Log "DBC and Maps are extracted" 0
-	  Log "Copying DBC and Maps files to installation directory" 0
-	  cp -R "$GAMEPATH/dbc" "$INSTPATH/bin"
+    rm -rf "$GAMEPATH/map-extractor"
+    cp "$INSTPATH/bin/tools/map-extractor" "$GAMEPATH"
+
+    Log "Extracting DBC and Maps" 0
+    cd "$GAMEPATH"
+    ./map-extractor
+
+    if [ $? -eq 0 ]; then
+      Log "DBC and Maps are extracted" 0
+      Log "Copying DBC and Maps files to installation directory" 0
+      cp -R "$GAMEPATH/dbc" "$INSTPATH/bin"
           cp -R "$GAMEPATH/maps" "$INSTPATH/bin"
           rm -rf "$GAMEPATH/map-extractor"
           Log "Changing ownership of the extracted directories"
@@ -1310,7 +1339,7 @@ function ExtractResources
         fi
     fi
   fi
-  
+
   if [[ $ACTIONS == *2* ]]; then
     if [ -d "$GAMEPATH/vmaps" ]; then
       $DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "VMaps were already generated" \
@@ -1319,7 +1348,7 @@ function ExtractResources
       # Check the user's answer
       if [ $? -eq 0 ]; then
         Log "Deleting VMaps previously generated." 1
-        rm -rf $GAMEPATH/vmaps       
+        rm -rf $GAMEPATH/vmaps
         Log "Copying VMaps extractor" 0
         rm -f "$GAMEPATH/vmap-extractor"
         cp "$INSTPATH/bin/tools/vmap-extractor" "$GAMEPATH"
@@ -1331,21 +1360,21 @@ function ExtractResources
         ./vmap-extractor
 
         if [ $? -eq 0 ]; then
-          Log "VMaps are extracted" 0 
-          Log "Copying VMaps files to installation directory" 0           
+          Log "VMaps are extracted" 0
+          Log "Copying VMaps files to installation directory" 0
           cp -R "$GAMEPATH/vmaps" "$INSTPATH/bin"
           rm -rf "$GAMEPATH/vmap-extractor"
           Log "Changing ownership of the extracted directories"
-          chown -R $USER:$USER "$INSTPATH"      
+          chown -R $USER:$USER "$INSTPATH"
         else
           Log "There was an issue while extracting VMaps!" 1
-          rm -rf "$GAMEPATH/vmap-extractor"      
+          rm -rf "$GAMEPATH/vmap-extractor"
           rm -rf "$GAMEPATH/vmaps"
           exit 1
         fi
       else
-        Log "Copying VMaps files to installation directory" 0           
-        cp -R "$GAMEPATH/vmaps" "$INSTPATH/bin"                
+        Log "Copying VMaps files to installation directory" 0
+        cp -R "$GAMEPATH/vmaps" "$INSTPATH/bin"
       fi
     else
      Log "Copying VMaps extractor" 0
@@ -1370,88 +1399,33 @@ function ExtractResources
        rm -rf "$GAMEPATH/vmap-extractor"
        rm -rf "$GAMEPATH/vmaps"
        exit 1
-     fi 
-    fi    
+     fi
+    fi
   fi
-  
+
   if [[ $ACTIONS == *3* ]]; then
     if [ ! -d "$GAMEPATH/maps" ]; then
       Log "Error: maps files must be created to be able to generate MMaps!" 1
       exit 1
     fi
-  
+
     if [ -d "$GAMEPATH/mmaps" ]; then
       $DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "MMaps were already generated" \
         --yesno "Do you want to generate them again?" 8 60
-        
+
       # Check the user's answer
       if [ $? -eq 0 ]; then
         Log "Deleting MMaps previously generated." 1
-        rm -rf $GAMEPATH/mmaps       
-        
+        rm -rf $GAMEPATH/mmaps
+
         Log "Copying MMaps extractor" 0
-        rm -f "$GAMEPATH/MoveMapGen.sh"
-        cp "$INSTPATH/bin/tools/MoveMapGen.sh" "$GAMEPATH"   
-        cp "$INSTPATH/bin/tools/offmesh.txt" "$GAMEPATH"
-        cp "$INSTPATH/bin/tools/mmap_excluded.txt" "$GAMEPATH"
-        cp "$INSTPATH/bin/tools/movemap-generator" "$GAMEPATH"
-        
-        CPU=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Please provide the number of CPU to be used to generate MMaps (1-4)" \
-         --inputbox "Default: 1" 8 80 3>&2 2>&1 1>&3)
-     
-        # User cancelled his choice, set default to 1.
-        if [ $? -ne 0 ]; then
-          Log "User selection was cancelled. Max CPU set to 1." 1
-          CPU=1
-        fi
-
-        if [ -z "$CPU" ]; then
-          Log "User didn't gave any value. Max CPU set to 1." 1
-          CPU=1
-        fi
-
-        if [ "$CPU" -lt 1 ] || [ "$CPU" -gt 4 ]; then
-          Log "User entered invalid value. Max CPU set to 1." 1
-          CPU=1
-        fi
-
-        Log "Extracting MMaps" 0
-        cd $GAMEPATH
-        # Making sure we can execute the script
-        chmod 700 MoveMapGen.sh
-        ./MoveMapGen.sh $CPU
-
-        if [ $? -eq 0 ]; then
-          Log "MMaps are extracted" 0 
-          Log "Copying MMaps files to installation directory" 0           
-          cp -R "$GAMEPATH/mmaps" "$INSTPATH/bin"
-          rm -rf "$GAMEPATH/MoveMapGen.sh"
-          rm -rf "$GAMEPATH/offmesh.txt"
-          rm -rf "$GAMEPATH/mmap_excluded.txt"
-          rm -rf "$GAMEPATH/movemap-generator"
-          Log "Changing ownership of the extracted directories"
-          chown -R $USER:$USER "$INSTPATH"      
-        else
-          Log "There was an issue while extracting MMaps!" 1
-          rm -rf "$GAMEPATH/MoveMapGen.sh"      
-          rm -rf "$GAMEPATH/mmaps"
-          rm -rf "$GAMEPATH/offmesh.txt"
-          rm -rf "$GAMEPATH/mmap_excluded.txt"
-          rm -rf "$GAMEPATH/movemap-generator"
-          exit 1
-        fi  
-      else
-        Log "Copying MMaps files to installation directory" 0           
-        cp -R "$GAMEPATH/mmaps" "$INSTPATH/bin"          
-      fi  
-    else
-	Log "Copying MMaps extractor" 0
         rm -f "$GAMEPATH/MoveMapGen.sh"
         cp "$INSTPATH/bin/tools/MoveMapGen.sh" "$GAMEPATH"
         cp "$INSTPATH/bin/tools/offmesh.txt" "$GAMEPATH"
         cp "$INSTPATH/bin/tools/mmap_excluded.txt" "$GAMEPATH"
-        cp "$INSTPATH/bin/tools/movemap-generator" "$GAMEPATH" 
-	CPU=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Please provide the number of CPU to be used to generate MMaps (1-4)" \
+        cp "$INSTPATH/bin/tools/mmap-extractor" "$GAMEPATH"
+
+        CPU=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Please provide the number of CPU to be used to generate MMaps (1-4)" \
          --inputbox "Default: 1" 8 80 3>&2 2>&1 1>&3)
 
         # User cancelled his choice, set default to 1.
@@ -1483,19 +1457,74 @@ function ExtractResources
           rm -rf "$GAMEPATH/MoveMapGen.sh"
           rm -rf "$GAMEPATH/offmesh.txt"
           rm -rf "$GAMEPATH/mmap_excluded.txt"
-          rm -rf "$GAMEPATH/movemap-generator"
+          rm -rf "$GAMEPATH/mmap-extractor"
           Log "Changing ownership of the extracted directories"
           chown -R $USER:$USER "$INSTPATH"
         else
-	  Log "There was an issue while extracting MMaps!" 1
+          Log "There was an issue while extracting MMaps!" 1
           rm -rf "$GAMEPATH/MoveMapGen.sh"
           rm -rf "$GAMEPATH/mmaps"
           rm -rf "$GAMEPATH/offmesh.txt"
           rm -rf "$GAMEPATH/mmap_excluded.txt"
-          rm -rf "$GAMEPATH/movemap-generator"
+          rm -rf "$GAMEPATH/mmap-extractor"
           exit 1
         fi
-    fi    
+      else
+        Log "Copying MMaps files to installation directory" 0
+        cp -R "$GAMEPATH/mmaps" "$INSTPATH/bin"
+      fi
+    else
+    Log "Copying MMaps extractor" 0
+        rm -f "$GAMEPATH/MoveMapGen.sh"
+        cp "$INSTPATH/bin/tools/MoveMapGen.sh" "$GAMEPATH"
+        cp "$INSTPATH/bin/tools/offmesh.txt" "$GAMEPATH"
+        cp "$INSTPATH/bin/tools/mmap_excluded.txt" "$GAMEPATH"
+        cp "$INSTPATH/bin/tools/mmap-extractor" "$GAMEPATH"
+    CPU=$($DLGAPP --backtitle "MaNGOS Linux Build Configuration" --title "Please provide the number of CPU to be used to generate MMaps (1-4)" \
+         --inputbox "Default: 1" 8 80 3>&2 2>&1 1>&3)
+
+        # User cancelled his choice, set default to 1.
+        if [ $? -ne 0 ]; then
+          Log "User selection was cancelled. Max CPU set to 1." 1
+          CPU=1
+        fi
+
+        if [ -z "$CPU" ]; then
+          Log "User didn't gave any value. Max CPU set to 1." 1
+          CPU=1
+        fi
+
+        if [ "$CPU" -lt 1 ] || [ "$CPU" -gt 4 ]; then
+          Log "User entered invalid value. Max CPU set to 1." 1
+          CPU=1
+        fi
+
+        Log "Extracting MMaps" 0
+        cd $GAMEPATH
+        # Making sure we can execute the script
+        chmod 700 MoveMapGen.sh
+        ./MoveMapGen.sh $CPU
+
+        if [ $? -eq 0 ]; then
+          Log "MMaps are extracted" 0
+          Log "Copying MMaps files to installation directory" 0
+          cp -R "$GAMEPATH/mmaps" "$INSTPATH/bin"
+          rm -rf "$GAMEPATH/MoveMapGen.sh"
+          rm -rf "$GAMEPATH/offmesh.txt"
+          rm -rf "$GAMEPATH/mmap_excluded.txt"
+          rm -rf "$GAMEPATH/mmap-extractor"
+          Log "Changing ownership of the extracted directories"
+          chown -R $USER:$USER "$INSTPATH"
+        else
+      Log "There was an issue while extracting MMaps!" 1
+          rm -rf "$GAMEPATH/MoveMapGen.sh"
+          rm -rf "$GAMEPATH/mmaps"
+          rm -rf "$GAMEPATH/offmesh.txt"
+          rm -rf "$GAMEPATH/mmap_excluded.txt"
+          rm -rf "$GAMEPATH/mmap-extractor"
+          exit 1
+        fi
+    fi
   fi
 }
 
@@ -1509,7 +1538,9 @@ function CreateCBProject
 
   # Now create the C::B project
   cd $SRCPATH/server/linux
-  cmake .. -G "CodeBlocks - Unix Makefiles"
+  # make sure we are using the cmake3
+  UseCmake3
+  $CMAKE_CMD .. -G "CodeBlocks - Unix Makefiles"
 }
 
 
@@ -1554,10 +1585,10 @@ fi
 # Select release and set paths?
 if [[ $TASKS == *2* ]] || [[ $TASKS == *3* ]] || [[ $TASKS == *4* ]] || [[ $TASKS == *5* ]] || [[ $TASKS == *7* ]]; then
   GetUser
-  GetRelease  
+  GetRelease
 fi
 
-if [[ $TASKS == *2* ]] || [[ $TASKS == *3* ]] || [[ $TASKS == *4* ]] || [[ $TASKS == *5* ]] || [[ $TASKS == *6* ]] || [[ $TASKS == *7* ]]; then  
+if [[ $TASKS == *2* ]] || [[ $TASKS == *3* ]] || [[ $TASKS == *4* ]] || [[ $TASKS == *5* ]] || [[ $TASKS == *6* ]] || [[ $TASKS == *7* ]]; then
   GetPaths
 fi
 
@@ -1578,7 +1609,7 @@ if [[ $TASKS == *5* ]]; then
 fi
 
 # Install databases?
-if [[ $TASKS == *6* ]]; then  
+if [[ $TASKS == *6* ]]; then
   HandleDatabases
 fi
 

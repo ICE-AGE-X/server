@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -99,7 +99,9 @@ WorldSocket::~WorldSocket(void)
     delete m_RecvWPct;
 
     if (m_OutBuffer)
-        { m_OutBuffer->release(); }
+    {
+        m_OutBuffer->release();
+    }
 
     closing_ = true;
 
@@ -107,7 +109,9 @@ WorldSocket::~WorldSocket(void)
 
     WorldPacket* pct;
     while (m_PacketQueue.dequeue_head(pct) == 0)
-      { delete pct; }
+    {
+        delete pct;
+    }
 }
 
 bool WorldSocket::IsClosed(void) const
@@ -120,7 +124,9 @@ void WorldSocket::CloseSocket(void)
     ACE_GUARD(LockType, Guard, m_OutBufferLock);
 
     if (closing_)
-      { return; }
+    {
+        return;
+    }
 
     closing_ = true;
     peer().close_writer();
@@ -138,7 +144,9 @@ int WorldSocket::SendPacket(const WorldPacket& pkt)
     ACE_GUARD_RETURN(LockType, Guard, m_OutBufferLock, -1);
 
     if (closing_)
-        { return -1; }
+    {
+        return -1;
+    }
 
     WorldPacket pct = pkt;
 
@@ -183,11 +191,15 @@ int WorldSocket::open(void* a)
 
     // Prevent double call to this func.
     if (m_OutBuffer)
-        { return -1; }
+    {
+        return -1;
+    }
 
     // Hook for the manager.
     if (sWorldSocketMgr->OnSocketOpen(this) == -1)
-        { return -1; }
+    {
+        return -1;
+    }
 
     // Allocate the buffer.
     ACE_NEW_RETURN(m_OutBuffer, ACE_Message_Block(m_OutBufferSize), -1);
@@ -220,7 +232,7 @@ int WorldSocket::open(void* a)
     return SendPacket(packet);
 }
 
-int WorldSocket::close(int)
+int WorldSocket::close(u_long)
 {
     shutdown();
 
@@ -234,7 +246,9 @@ int WorldSocket::close(int)
 int WorldSocket::handle_input(ACE_HANDLE)
 {
     if (closing_)
-        { return -1; }
+    {
+        return -1;
+    }
 
     switch (handle_input_missing_data())
     {
@@ -262,7 +276,9 @@ int WorldSocket::handle_output(ACE_HANDLE)
     ACE_GUARD_RETURN(LockType, Guard, m_OutBufferLock, -1);
 
     if (closing_)
-        { return -1; }
+    {
+        return -1;
+    }
 
     const size_t send_len = m_OutBuffer->length();
 
@@ -323,7 +339,9 @@ int WorldSocket::handle_close(ACE_HANDLE h, ACE_Reactor_Mask)
         closing_ = true;
 
         if (h == ACE_INVALID_HANDLE)
-            { peer().close_writer(); }
+        {
+            peer().close_writer();
+        }
     }
 
     m_Session = NULL;
@@ -390,7 +408,9 @@ int WorldSocket::handle_input_payload(void)
     m_Header.reset();
 
     if (ret == -1)
-        { errno = EINVAL; }
+    {
+        errno = EINVAL;
+    }
 
     return ret;
 }
@@ -417,7 +437,9 @@ int WorldSocket::handle_input_missing_data(void)
                                   recv_size);
 
     if (n <= 0)
-        { return (int)n; }
+    {
+        return (int)n;
+    }
 
     message_block.wr_ptr(n);
 
@@ -500,7 +522,9 @@ int WorldSocket::ProcessIncoming(WorldPacket* new_pct)
     }
 
     if (closing_)
-        { return -1; }
+    {
+        return -1;
+    }
 
     // Dump received packet.
     sLog.outWorldPacketDump(uint32(get_handle()), new_pct->GetOpcode(), new_pct->GetOpcodeName(), new_pct, true);
@@ -520,7 +544,9 @@ int WorldSocket::ProcessIncoming(WorldPacket* new_pct)
 
 #ifdef ENABLE_ELUNA
                 if (!sEluna->OnPacketReceive(m_Session, *new_pct))
+                {
                     return 0;
+                }
 #endif /* ENABLE_ELUNA */
                 return HandleAuthSession(*new_pct);
             case CMSG_KEEP_ALIVE:
@@ -565,7 +591,9 @@ int WorldSocket::ProcessIncoming(WorldPacket* new_pct)
             return -1;
         }
         else
-            { return 0; }
+        {
+            return 0;
+        }
     }
 
     ACE_NOTREACHED(return 0);
@@ -619,19 +647,19 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
 
     QueryResult* result =
         LoginDatabase.PQuery("SELECT "
-                             "id, "                      // 0
-                             "gmlevel, "                 // 1
-                             "sessionkey, "              // 2
-                             "last_ip, "                 // 3
-                             "locked, "                  // 4
-                             "v, "                       // 5
-                             "s, "                       // 6
-                             "expansion, "               // 7
-                             "mutetime, "                // 8
-                             "locale, "                  // 9
-                             "os "                       // 10
-                             "FROM account "
-                             "WHERE username = '%s'",
+                             "`id`, "                      // 0
+                             "`gmlevel`, "                 // 1
+                             "`sessionkey`, "              // 2
+                             "`last_ip`, "                 // 3
+                             "`locked`, "                  // 4
+                             "`v`, "                       // 5
+                             "`s`, "                       // 6
+                             "`expansion`, "               // 7
+                             "`mutetime`, "                // 8
+                             "`locale`, "                  // 9
+                             "`os` "                       // 10
+                             "FROM `account` "
+                             "WHERE `username` = '%s'",
                              safe_account.c_str());
 
     // Stop if the account is not found
@@ -684,7 +712,9 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     id = fields[0].GetUInt32();
     security = fields[1].GetUInt16();
     if (security > SEC_ADMINISTRATOR)                       // prevent invalid security settings in DB
-        { security = SEC_ADMINISTRATOR; }
+    {
+        security = SEC_ADMINISTRATOR;
+    }
 
     K.SetHexStr(fields[2].GetString());
 
@@ -692,7 +722,9 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
 
     locale = LocaleConstant(fields[9].GetUInt8());
     if (locale >= MAX_LOCALE)
-        { locale = LOCALE_enUS; }
+    {
+        locale = LOCALE_enUS;
+    }
 
     os = fields[10].GetString();
 
@@ -700,9 +732,9 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
 
     // Re-check account ban (same check as in realmd)
     QueryResult* banresult =
-        LoginDatabase.PQuery("SELECT 1 FROM account_banned WHERE id = %u AND active = 1 AND (unbandate > UNIX_TIMESTAMP() OR unbandate = bandate)"
+        LoginDatabase.PQuery("SELECT 1 FROM `account_banned` WHERE `id` = %u AND `active` = 1 AND (`unbandate` > UNIX_TIMESTAMP() OR `unbandate` = `bandate`)"
                              "UNION "
-                             "SELECT 1 FROM ip_banned WHERE (unbandate = bandate OR unbandate > UNIX_TIMESTAMP()) AND ip = '%s'",
+                             "SELECT 1 FROM `ip_banned` WHERE (`unbandate` = `bandate` OR `unbandate` > UNIX_TIMESTAMP()) AND `ip` = '%s'",
                              id, GetRemoteAddress().c_str());
 
     if (banresult) // if account banned
@@ -777,7 +809,7 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
     // No SQL injection, username escaped.
     static SqlStatementID updAccount;
 
-    SqlStatement stmt = LoginDatabase.CreateStatement(updAccount, "UPDATE account SET last_ip = ? WHERE username = ?");
+    SqlStatement stmt = LoginDatabase.CreateStatement(updAccount, "UPDATE `account` SET `last_ip` = ? WHERE `username` = ?");
     stmt.PExecute(address.c_str(), account.c_str());
 
     // NOTE ATM the socket is single-threaded, have this in mind ...
@@ -792,13 +824,17 @@ int WorldSocket::HandleAuthSession(WorldPacket& recvPacket)
 
     // Initialize Warden system only if it is enabled by config
     if (wardenActive)
-        m_Session->InitWarden(&K, os);
+    {
+        m_Session->InitWarden(uint16(BuiltNumberClient), &K, os);
+    }
 
     sWorld.AddSession(m_Session);
 
     // Create and send the Addon packet
     if (sAddOnHandler.BuildAddonPacket(&recvPacket, &SendAddonPacked))
-        { SendPacket(SendAddonPacked); }
+    {
+        SendPacket(SendAddonPacked);
+    }
 
     return 0;
 }
@@ -813,7 +849,9 @@ int WorldSocket::HandlePing(WorldPacket& recvPacket)
     recvPacket >> latency;
 
     if (m_LastPingTime == ACE_Time_Value::zero)
-        { m_LastPingTime = ACE_OS::gettimeofday(); }            // for 1st ping
+    {
+        m_LastPingTime = ACE_OS::gettimeofday();             // for 1st ping
+    }
     else
     {
         ACE_Time_Value cur_time = ACE_OS::gettimeofday();
@@ -840,7 +878,9 @@ int WorldSocket::HandlePing(WorldPacket& recvPacket)
             }
         }
         else
-            { m_OverSpeedPings = 0; }
+        {
+            m_OverSpeedPings = 0;
+        }
     }
 
     if (m_Session)
@@ -882,11 +922,15 @@ int WorldSocket::iSendPacket(const WorldPacket& pct)
     m_Crypt.EncryptSend((uint8*) & header, sizeof(header));
 
     if (m_OutBuffer->copy((char*) & header, sizeof(header)) == -1)
-        { ACE_ASSERT(false); }
+    {
+        ACE_ASSERT(false);
+    }
 
     if (!pct.empty())
         if (m_OutBuffer->copy((char*) pct.contents(), pct.size()) == -1)
-            { ACE_ASSERT(false); }
+        {
+            ACE_ASSERT(false);
+        }
 
     return 0;
 }

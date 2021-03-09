@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,9 @@ OutdoorPvPHP::OutdoorPvPHP() : OutdoorPvP(),
     m_towerWorldState[2] = WORLD_STATE_HP_BROKEN_HILL_NEUTRAL;
 
     for (uint8 i = 0; i < MAX_HP_TOWERS; ++i)
+    {
         m_towerOwner[i] = TEAM_NONE;
+    }
 }
 
 void OutdoorPvPHP::FillInitialWorldStates(WorldPacket& data, uint32& count)
@@ -50,7 +52,9 @@ void OutdoorPvPHP::FillInitialWorldStates(WorldPacket& data, uint32& count)
     FillInitialWorldState(data, count, WORLD_STATE_HP_TOWER_DISPLAY_H, WORLD_STATE_ADD);
 
     for (uint8 i = 0; i < MAX_HP_TOWERS; ++i)
+    {
         FillInitialWorldState(data, count, m_towerWorldState[i], WORLD_STATE_ADD);
+    }
 }
 
 void OutdoorPvPHP::SendRemoveWorldStates(Player* player)
@@ -59,7 +63,9 @@ void OutdoorPvPHP::SendRemoveWorldStates(Player* player)
     player->SendUpdateWorldState(WORLD_STATE_HP_TOWER_DISPLAY_H, WORLD_STATE_REMOVE);
 
     for (uint8 i = 0; i < MAX_HP_TOWERS; ++i)
+    {
         player->SendUpdateWorldState(m_towerWorldState[i], WORLD_STATE_REMOVE);
+    }
 }
 
 void OutdoorPvPHP::HandlePlayerEnterZone(Player* player, bool isMainZone)
@@ -71,9 +77,13 @@ void OutdoorPvPHP::HandlePlayerEnterZone(Player* player, bool isMainZone)
 
     // buff the player if same team is controlling all capture points
     if (m_towersAlliance == MAX_HP_TOWERS && player->GetTeam() == ALLIANCE)
+    {
         player->CastSpell(player, SPELL_HELLFIRE_SUPERIORITY_ALLIANCE, true);
+    }
     else if (m_towersHorde == MAX_HP_TOWERS && player->GetTeam() == HORDE)
+    {
         player->CastSpell(player, SPELL_HELLFIRE_SUPERIORITY_HORDE, true);
+    }
 }
 
 void OutdoorPvPHP::HandlePlayerLeaveZone(Player* player, bool isMainZone)
@@ -162,7 +172,9 @@ void OutdoorPvPHP::HandlePlayerKillInsideArea(Player* player)
             {
                 // check capture point team
                 if (player->GetTeam() == m_towerOwner[i])
+                {
                     player->CastSpell(player, player->GetTeam() == ALLIANCE ? SPELL_HELLFIRE_TOWER_TOKEN_ALLIANCE : SPELL_HELLFIRE_TOWER_TOKEN_HORDE, true);
+                }
 
                 return;
             }
@@ -185,7 +197,9 @@ bool OutdoorPvPHP::HandleEvent(uint32 eventId, GameObject* go)
                     if (hellfireTowerEvents[i][j].team != m_towerOwner[i])
                     {
                         if (hellfireTowerEvents[i][j].defenseMessage)
+                        {
                             sWorld.SendDefenseMessage(ZONE_ID_HELLFIRE_PENINSULA, hellfireTowerEvents[i][j].defenseMessage);
+                        }
 
                         return ProcessCaptureEvent(go, i, hellfireTowerEvents[i][j].team, hellfireTowerEvents[i][j].worldState, hellfireTowerEvents[i][j].towerArtKit, hellfireTowerEvents[i][j].towerAnim);
                     }
@@ -213,7 +227,9 @@ bool OutdoorPvPHP::ProcessCaptureEvent(GameObject* go, uint32 towerId, Team team
         SendUpdateWorldState(WORLD_STATE_HP_TOWER_COUNT_ALLIANCE, m_towersAlliance);
 
         if (m_towersAlliance == MAX_HP_TOWERS)
+        {
             BuffTeam(ALLIANCE, SPELL_HELLFIRE_SUPERIORITY_ALLIANCE);
+        }
     }
     else if (team == HORDE)
     {
@@ -224,7 +240,9 @@ bool OutdoorPvPHP::ProcessCaptureEvent(GameObject* go, uint32 towerId, Team team
         SendUpdateWorldState(WORLD_STATE_HP_TOWER_COUNT_HORDE, m_towersHorde);
 
         if (m_towersHorde == MAX_HP_TOWERS)
+        {
             BuffTeam(HORDE, SPELL_HELLFIRE_SUPERIORITY_HORDE);
+        }
     }
     else
     {
@@ -233,7 +251,9 @@ bool OutdoorPvPHP::ProcessCaptureEvent(GameObject* go, uint32 towerId, Team team
         if (m_towerOwner[towerId] == ALLIANCE)
         {
             if (m_towersAlliance == MAX_HP_TOWERS)
+            {
                 BuffTeam(ALLIANCE, SPELL_HELLFIRE_SUPERIORITY_ALLIANCE, true);
+            }
 
             // update counter
             --m_towersAlliance;
@@ -242,7 +262,9 @@ bool OutdoorPvPHP::ProcessCaptureEvent(GameObject* go, uint32 towerId, Team team
         else
         {
             if (m_towersHorde == MAX_HP_TOWERS)
+            {
                 BuffTeam(HORDE, SPELL_HELLFIRE_SUPERIORITY_HORDE, true);
+            }
 
             // update counter
             --m_towersHorde;

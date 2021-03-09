@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -101,6 +101,7 @@ enum QuestStatus
     QUEST_STATUS_INCOMPLETE     = 3,
     QUEST_STATUS_AVAILABLE      = 4,                        // unused in fact
     QUEST_STATUS_FAILED         = 5,
+    QUEST_STATUS_FORCE_COMPLETE = 6,
     MAX_QUEST_STATUS
 };
 
@@ -166,6 +167,19 @@ enum QuestSpecialFlags
 };
 
 #define QUEST_SPECIAL_FLAG_DB_ALLOWED (QUEST_SPECIAL_FLAG_REPEATABLE | QUEST_SPECIAL_FLAG_EXPLORATION_OR_EVENT)
+
+enum QuestActor
+{
+    QA_CREATURE    = 0,
+    QA_GAMEOBJECT  = 1,
+    QA_AREATRIGGER = 2,
+};
+
+enum QuestRole
+{
+    QR_START = 0,
+    QR_END   = 1,
+};
 
 struct QuestLocale
 {

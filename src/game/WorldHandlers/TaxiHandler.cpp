@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,7 +57,9 @@ void WorldSession::SendTaxiStatus(ObjectGuid guid)
 
     // not found nearest
     if (curloc == 0)
-        { return; }
+    {
+        return;
+    }
 
     DEBUG_LOG("WORLD: current location %u ", curloc);
 
@@ -86,11 +88,15 @@ void WorldSession::HandleTaxiQueryAvailableNodes(WorldPacket& recv_data)
 
     // remove fake death
     if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
-        { GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH); }
+    {
+        GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
+    }
 
     // unknown taxi node case
     if (SendLearnNewTaxiNode(unit))
-        { return; }
+    {
+        return;
+    }
 
     // known taxi node case
     SendTaxiMenu(unit);
@@ -102,7 +108,9 @@ void WorldSession::SendTaxiMenu(Creature* unit)
     uint32 curloc = sObjectMgr.GetNearestTaxiNode(unit->GetPositionX(), unit->GetPositionY(), unit->GetPositionZ(), unit->GetMapId(), GetPlayer()->GetTeam());
 
     if (curloc == 0)
-        { return; }
+    {
+        return;
+    }
 
     DEBUG_LOG("WORLD: CMSG_TAXINODE_STATUS_QUERY %u ", curloc);
 
@@ -120,13 +128,19 @@ void WorldSession::SendDoFlight(uint32 mountDisplayId, uint32 path, uint32 pathN
 {
     // remove fake death
     if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
-        { GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH); }
+    {
+        GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
+    }
 
     while (GetPlayer()->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE)
-        { GetPlayer()->GetMotionMaster()->MovementExpired(false); }
+    {
+        GetPlayer()->GetMotionMaster()->MovementExpired(false);
+    }
 
     if (mountDisplayId)
-        { GetPlayer()->Mount(mountDisplayId); }
+    {
+        GetPlayer()->Mount(mountDisplayId);
+    }
 
     GetPlayer()->GetMotionMaster()->MoveTaxiFlight(path, pathNode);
 }
@@ -137,7 +151,9 @@ bool WorldSession::SendLearnNewTaxiNode(Creature* unit)
     uint32 curloc = sObjectMgr.GetNearestTaxiNode(unit->GetPositionX(), unit->GetPositionY(), unit->GetPositionZ(), unit->GetMapId(), GetPlayer()->GetTeam());
 
     if (curloc == 0)
-        { return true; }                                        // `true` send to avoid WorldSession::SendTaxiMenu call with one more curlock seartch with same false result.
+    {
+        return true;                                         // `true` send to avoid WorldSession::SendTaxiMenu call with one more curlock seartch with same false result.
+    }
 
     if (GetPlayer()->m_taxi.SetTaximaskNode(curloc))
     {
@@ -152,7 +168,9 @@ bool WorldSession::SendLearnNewTaxiNode(Creature* unit)
         return true;
     }
     else
-        { return false; }
+    {
+        return false;
+    }
 }
 
 void WorldSession::SendActivateTaxiReply(ActivateTaxiReply reply)
@@ -189,7 +207,9 @@ void WorldSession::HandleActivateTaxiExpressOpcode(WorldPacket& recv_data)
     }
 
     if (nodes.empty())
-        { return; }
+    {
+        return;
+    }
 
     DEBUG_LOG("WORLD: Received opcode CMSG_ACTIVATETAXIEXPRESS from %d to %d" , nodes.front(), nodes.back());
 
@@ -212,7 +232,9 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
         TaxiPathNodeList const& nlist = sTaxiPathNodesByPath[pathid];
         if (uint32 eventid = nlist[nlist.size() - 1].arrivalEventID)
             if (!sScriptMgr.OnProcessEvent(eventid, GetPlayer(), GetPlayer(), false))
+            {
                 GetPlayer()->GetMap()->ScriptsStart(DBS_ON_EVENT, eventid, GetPlayer(), GetPlayer());
+            }
     }
 
     // in taxi flight packet received in 2 case:
@@ -221,7 +243,9 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     // we need process only (1)
     uint32 curDest = GetPlayer()->m_taxi.GetTaxiDestination();
     if (!curDest)
-        { return; }
+    {
+        return;
+    }
 
     TaxiNodesEntry const* curDestNode = sTaxiNodesStore.LookupEntry(curDest);
 
@@ -268,12 +292,18 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
         sObjectMgr.GetTaxiPath(sourcenode, destinationnode, path, cost);
 
         if (path && mountDisplayId)
-            { SendDoFlight(mountDisplayId, path, 1); }          // skip start fly node
+        {
+            SendDoFlight(mountDisplayId, path, 1);           // skip start fly node
+        }
         else
-            { GetPlayer()->m_taxi.ClearTaxiDestinations(); }    // clear problematic path and next
+        {
+            GetPlayer()->m_taxi.ClearTaxiDestinations();     // clear problematic path and next
+        }
     }
     else
-        { GetPlayer()->m_taxi.ClearTaxiDestinations(); }        // not destinations, clear source node
+    {
+        GetPlayer()->m_taxi.ClearTaxiDestinations();         // not destinations, clear source node
+    }
 }
 
 void WorldSession::HandleActivateTaxiOpcode(WorldPacket& recv_data)

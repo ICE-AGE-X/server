@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,8 @@
 #include "ObjectGuid.h"
 #include "DBCEnums.h"
 #include <ace/Atomic_Op.h>
+#include <ace/Thread_Mutex.h>
+#include <ace/Guard_T.h>
 
 struct AreaTriggerEntry;
 struct SpellEntry;
@@ -36,6 +38,7 @@ class Aura;
 class Creature;
 class CreatureAI;
 class GameObject;
+class GameObjectAI;
 class InstanceData;
 class Item;
 class Map;
@@ -104,6 +107,7 @@ enum DBScriptCommand                                        // resSource, resTar
     SCRIPT_COMMAND_RESPAWN_GAMEOBJECT       = 9,            // source = any, datalong=db_guid, datalong2=despawn_delay
     SCRIPT_COMMAND_TEMP_SUMMON_CREATURE     = 10,           // source = any, datalong=creature entry, datalong2=despawn_delay
                                                             // data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL = summon active
+                                                            // dataint = (bool) setRun; 0 = off (default), 1 = on
     SCRIPT_COMMAND_OPEN_DOOR                = 11,           // datalong=db_guid (or not provided), datalong2=reset_delay
     SCRIPT_COMMAND_CLOSE_DOOR               = 12,           // datalong=db_guid (or not provided), datalong2=reset_delay
     SCRIPT_COMMAND_ACTIVATE_OBJECT          = 13,           // source = unit, target=GO
@@ -163,6 +167,7 @@ enum DBScriptCommand                                        // resSource, resTar
                                                             // dataint1: Delay (>= 0) in Seconds
     SCRIPT_COMMAND_CHANGE_ENTRY             = 39,           // resSource = Creature, datalong=creature entry
                                                             // dataint1 = entry
+    SCRIPT_COMMAND_DESPAWN_GO               = 40,           // resTarget = GameObject
 };
 
 #define MAX_TEXT_ID 4                                       // used for SCRIPT_COMMAND_TALK, SCRIPT_COMMAND_EMOTE, SCRIPT_COMMAND_CAST_SPELL, SCRIPT_COMMAND_TERMINATE_SCRIPT
@@ -415,6 +420,12 @@ struct ScriptInfo
             uint32 empty1;                                  // datalong2
         } changeEntry;
 
+        struct                                              // SCRIPT_COMMAND_DESPAWN_GO (40)
+        {
+            uint32 goGuid;                                  //datalong
+            uint32 respawnTime;                             //datalong2
+        } despawnGo;
+
         struct
         {
             uint32 data[2];
@@ -443,6 +454,8 @@ struct ScriptInfo
             case SCRIPT_COMMAND_OPEN_DOOR:
             case SCRIPT_COMMAND_CLOSE_DOOR:
                 return changeDoor.goGuid;
+            case SCRIPT_COMMAND_DESPAWN_GO:
+                return despawnGo.goGuid;
             default:
                 return 0;
         }
@@ -573,13 +586,7 @@ class ScriptMgr
 
         bool ReloadScriptBinding();
 
-        ScriptChainMap const* GetScriptChainMap(DBScriptType type)
-        {
-            if ((type != DBS_INTERNAL) && type < DBS_END)
-                return &m_dbScripts[type];
-
-            return NULL;
-        }
+        ScriptChainMap const* GetScriptChainMap(DBScriptType type);
 
         const char* GetScriptName(uint32 id) const
         {
@@ -625,13 +632,18 @@ class ScriptMgr
         static bool CanSpellEffectStartDBScript(SpellEntry const* spellinfo, SpellEffectIndex effIdx);
 
         CreatureAI* GetCreatureAI(Creature* pCreature);
+
+        GameObjectAI* GetGameObjectAI(GameObject* pGo);
+
         InstanceData* CreateInstanceData(Map* pMap);
 
         char const* GetScriptLibraryVersion() const;
         bool OnGossipHello(Player* pPlayer, Creature* pCreature);
         bool OnGossipHello(Player* pPlayer, GameObject* pGameObject);
+        bool OnGossipHello(Player* pPlayer, Item* pItem);
         bool OnGossipSelect(Player* pPlayer, Creature* pCreature, uint32 sender, uint32 action, const char* code);
         bool OnGossipSelect(Player* pPlayer, GameObject* pGameObject, uint32 sender, uint32 action, const char* code);
+        bool OnGossipSelect(Player* pPlayer, Item* pItem, uint32 sender, uint32 action, const char* code);
         bool OnQuestAccept(Player* pPlayer, Creature* pCreature, Quest const* pQuest);
         bool OnQuestAccept(Player* pPlayer, GameObject* pGameObject, Quest const* pQuest);
         bool OnQuestAccept(Player* pPlayer, Item* pItem, Quest const* pQuest);
@@ -640,6 +652,7 @@ class ScriptMgr
         uint32 GetDialogStatus(Player* pPlayer, Creature* pCreature);
         uint32 GetDialogStatus(Player* pPlayer, GameObject* pGameObject);
         bool OnGameObjectUse(Player* pPlayer, GameObject* pGameObject);
+        bool OnGameObjectUse(Unit* pUnit, GameObject* pGameObject);
         bool OnItemUse(Player* pPlayer, Item* pItem, SpellCastTargets const& targets);
         bool OnAreaTrigger(Player* pPlayer, AreaTriggerEntry const* atEntry);
         bool OnProcessEvent(uint32 eventId, Object* pSource, Object* pTarget, bool isStart);
@@ -662,11 +675,13 @@ class ScriptMgr
         ScriptNameMap      m_scriptNames;
         DBScripts          m_dbScripts;
 #ifdef _DEBUG
-        // mutex allowing to reload the script binding table; TODO just do it AWAY from any map update, e.g. right after sessions update 
+        // mutex allowing to reload the script binding table; TODO just do it AWAY from any map update, e.g. right after sessions update
         ACE_RW_Thread_Mutex m_bindMutex;
 #endif /* _DEBUG */
         // atomic op counter for active scripts amount
         ACE_Atomic_Op<ACE_Thread_Mutex, long> m_scheduledScripts;
+        char __cache_guard[1024];
+        ACE_Thread_Mutex m_lock;
 };
 
 // Starters for events

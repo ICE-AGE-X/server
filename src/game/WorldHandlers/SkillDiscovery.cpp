@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ void LoadSkillDiscoveryTable()
     uint32 count = 0;
 
     //                                                0        1         2
-    QueryResult* result = WorldDatabase.Query("SELECT spellId, reqSpell, chance FROM skill_discovery_template");
+    QueryResult* result = WorldDatabase.Query("SELECT `spellId`, `reqSpell`, `chance` FROM `skill_discovery_template`");
 
     if (!result)
     {
@@ -125,7 +125,9 @@ void LoadSkillDiscoveryTable()
             }
 
             for (SkillLineAbilityMap::const_iterator _spell_idx = bounds.first; _spell_idx != bounds.second; ++_spell_idx)
+            {
                 SkillDiscoveryStore[-int32(_spell_idx->second->skillId)].push_back(SkillDiscoveryEntry(spellId, chance));
+            }
         }
         else
         {
@@ -142,7 +144,9 @@ void LoadSkillDiscoveryTable()
     sLog.outString();
     sLog.outString(">> Loaded %u skill discovery definitions", count);
     if (!ssNonDiscoverableEntries.str().empty())
+    {
         sLog.outErrorDb("Some items can't be successfully discovered: have in chance field value < 0.000001 in `skill_discovery_template` DB table . List:\n%s", ssNonDiscoverableEntries.str().c_str());
+    }
 }
 
 uint32 GetSkillDiscoverySpell(uint32 skillId, uint32 spellId, Player* player)
@@ -163,7 +167,9 @@ uint32 GetSkillDiscoverySpell(uint32 skillId, uint32 spellId, Player* player)
     }
 
     if (!skillId)
+    {
         return 0;
+    }
 
     // check skill line case
     tab = SkillDiscoveryStore.find(-(int32)skillId);

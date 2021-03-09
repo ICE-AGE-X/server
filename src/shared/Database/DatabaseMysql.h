@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ class MySqlPreparedStatement : public SqlPreparedStatement
          * @param bUnsigned
          * @return enum_field_types
          */
-        static enum_field_types ToMySQLType(const SqlStmtFieldData& data, my_bool& bUnsigned);
+        static enum_field_types ToMySQLType(const SqlStmtFieldData& data, bool& bUnsigned);
 
     private:
         /**
@@ -169,7 +169,7 @@ class MySQLConnection : public SqlConnection
          * @param length
          * @return unsigned long
          */
-        unsigned long escape_string(char* to, const char* from, unsigned long length);
+        unsigned long escape_string(char* to, const char* from, unsigned long length) override;
 
         /**
          * @brief
@@ -266,4 +266,5 @@ class DatabaseMysql : public Database
 };
 
 #endif
+
 #endif

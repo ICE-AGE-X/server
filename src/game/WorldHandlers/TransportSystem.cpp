@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,7 +69,9 @@ void TransportBase::Update(uint32 diff)
         m_updatePositionsTimer = 500;
     }
     else
+    {
         m_updatePositionsTimer -= diff;
+    }
 }
 
 // Update the global positions of all passengers
@@ -106,7 +108,9 @@ void TransportBase::UpdateGlobalPositionOf(WorldObject* passenger, float lx, flo
             m_owner->GetMap()->PlayerRelocation((Player*)passenger, gx, gy, gz, go);
         }
         else
+        {
             m_owner->GetMap()->CreatureRelocation((Creature*)passenger, gx, gy, gz, go);
+        }
     }
     // ToDo: Add gameobject relocation
     // ToDo: Add passenger relocation for MO transports
@@ -153,7 +157,9 @@ void TransportBase::UnBoardPassenger(WorldObject* passenger)
     PassengerMap::iterator itr = m_passengers.find(passenger);
 
     if (itr == m_passengers.end())
+    {
         return;
+    }
 
     // Set passengers transportInfo to NULL
     passenger->SetTransportInfo(NULL);

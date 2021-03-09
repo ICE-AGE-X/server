@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,9 @@ void OutdoorPvPNA::FillInitialWorldStates(WorldPacket& data, uint32& count)
 
         // map states
         for (uint8 i = 0; i < MAX_NA_ROOSTS; ++i)
+        {
             FillInitialWorldState(data, count, m_roostWorldState[i], WORLD_STATE_ADD);
+        }
     }
 
     FillInitialWorldState(data, count, m_zoneMapState, WORLD_STATE_ADD);
@@ -65,7 +67,9 @@ void OutdoorPvPNA::SendRemoveWorldStates(Player* player)
     player->SendUpdateWorldState(m_zoneMapState, WORLD_STATE_REMOVE);
 
     for (uint8 i = 0; i < MAX_NA_ROOSTS; ++i)
+    {
         player->SendUpdateWorldState(m_roostWorldState[i], WORLD_STATE_REMOVE);
+    }
 }
 
 void OutdoorPvPNA::HandlePlayerEnterZone(Player* player, bool isMainZone)
@@ -77,7 +81,9 @@ void OutdoorPvPNA::HandlePlayerEnterZone(Player* player, bool isMainZone)
 
     // buff the player if same team is controlling the zone
     if (player->GetTeam() == m_zoneOwner)
+    {
         player->CastSpell(player, SPELL_STRENGTH_HALAANI, true);
+    }
 }
 
 void OutdoorPvPNA::HandlePlayerLeaveZone(Player* player, bool isMainZone)
@@ -95,7 +101,9 @@ void OutdoorPvPNA::HandleObjectiveComplete(uint32 eventId, const std::list<Playe
         for (std::list<Player*>::const_iterator itr = players.begin(); itr != players.end(); ++itr)
         {
             if ((*itr) && (*itr)->GetTeam() == team)
+            {
                 (*itr)->KilledMonsterCredit(NPC_HALAA_COMBATANT);
+            }
         }
     }
 }
@@ -111,7 +119,9 @@ void OutdoorPvPNA::HandlePlayerKillInsideArea(Player* player)
         {
             // check capture point team
             if (player->GetTeam() == m_zoneOwner)
+            {
                 player->CastSpell(player, player->GetTeam() == ALLIANCE ? SPELL_NAGRAND_TOKEN_ALLIANCE : SPELL_NAGRAND_TOKEN_HORDE, true);
+            }
 
             return;
         }
@@ -138,7 +148,9 @@ void OutdoorPvPNA::HandleCreatureCreate(Creature* creature)
         case NPC_ALLIANCE_HANAANI_GUARD:
             // prevent updating guard counter on owner take over
             if (m_guardsLeft == MAX_NA_GUARDS)
+            {
                 return;
+            }
 
             if (m_guardsLeft == 0)
             {
@@ -159,7 +171,9 @@ void OutdoorPvPNA::HandleCreatureCreate(Creature* creature)
 void OutdoorPvPNA::HandleCreatureDeath(Creature* creature)
 {
     if (creature->GetEntry() != NPC_HORDE_HALAANI_GUARD && creature->GetEntry() != NPC_ALLIANCE_HANAANI_GUARD)
+    {
         return;
+    }
 
     // get the location of the dead guard for future respawn
     float x, y, z, o;
@@ -169,7 +183,9 @@ void OutdoorPvPNA::HandleCreatureDeath(Creature* creature)
 
     // set the respawn timer after the last guard died - 5 min for the first time, or 1 hour if the city is under siege
     if (!m_soldiersRespawnTimer)
+    {
         m_soldiersRespawnTimer = m_isUnderSiege ? HOUR * IN_MILLISECONDS : 5 * MINUTE * IN_MILLISECONDS;
+    }
 
     // decrease the counter
     --m_guardsLeft;
@@ -295,7 +311,9 @@ void OutdoorPvPNA::UpdateWorldState(uint32 value)
 void OutdoorPvPNA::UpdateWyvernsWorldState(uint32 value)
 {
     for (uint8 i = 0; i < MAX_NA_ROOSTS; ++i)
+    {
         SendUpdateWorldState(m_roostWorldState[i], value);
+    }
 }
 
 // process the capture events
@@ -303,7 +321,9 @@ bool OutdoorPvPNA::HandleEvent(uint32 eventId, GameObject* go)
 {
     // If we are not using the Halaa banner return
     if (go->GetEntry() != GO_HALAA_BANNER)
+    {
         return false;
+    }
 
     bool eventHandled = true;
 
@@ -406,7 +426,9 @@ void OutdoorPvPNA::DespawnVendors(const WorldObject* objRef)
     for (GuidList::const_iterator itr = m_teamVendors.begin(); itr != m_teamVendors.end(); ++itr)
     {
         if (Creature* soldier = objRef->GetMap()->GetCreature(*itr))
+        {
             soldier->ForcedDespawn();
+        }
     }
     m_teamVendors.clear();
 }
@@ -519,12 +541,18 @@ void OutdoorPvPNA::Update(uint32 diff)
 
             // if all the guards are respawned, stop the timer, else resume the timer depending on the siege state
             if (m_guardsLeft == MAX_NA_GUARDS)
+            {
                 m_soldiersRespawnTimer = 0;
+            }
             else
+            {
                 m_soldiersRespawnTimer = m_isUnderSiege ? HOUR * IN_MILLISECONDS : 5 * MINUTE * IN_MILLISECONDS;
+            }
         }
         else
+        {
             m_soldiersRespawnTimer -= diff;
+        }
     }
 }
 
@@ -535,12 +563,14 @@ void OutdoorPvPNA::RespawnSoldier()
     {
         // Find player who is in main zone (Nagrand) to get correct map reference
         if (!itr->second)
+        {
             continue;
+        }
 
         if (Player* player = sObjectMgr.GetPlayer(itr->first))
         {
             // summon a soldier replacement in the order they were set in the deque. delete the element after summon
-            player->SummonCreature(m_zoneOwner == ALLIANCE ? NPC_ALLIANCE_HANAANI_GUARD : NPC_HORDE_HALAANI_GUARD, m_deadSoldiers.front().x, m_deadSoldiers.front().y, m_deadSoldiers.front().z, m_deadSoldiers.front().o, TEMPSUMMON_DEAD_DESPAWN, 0, true);
+            player->SummonCreature(m_zoneOwner == ALLIANCE ? NPC_ALLIANCE_HANAANI_GUARD : NPC_HORDE_HALAANI_GUARD, m_deadSoldiers.front().x, m_deadSoldiers.front().y, m_deadSoldiers.front().z, m_deadSoldiers.front().o, TEMPSPAWN_DEAD_DESPAWN, 0, true);
             m_deadSoldiers.pop();
             break;
         }
@@ -551,7 +581,9 @@ void OutdoorPvPNA::RespawnSoldier()
 void OutdoorPvPNA::LockHalaa(const WorldObject* objRef)
 {
     if (GameObject* go = objRef->GetMap()->GetGameObject(m_capturePoint))
+    {
         go->SetLootState(GO_JUST_DEACTIVATED);
+    }
     else
     {
         // if grid is unloaded, changing the saved slider value is enough
@@ -564,7 +596,9 @@ void OutdoorPvPNA::LockHalaa(const WorldObject* objRef)
 void OutdoorPvPNA::UnlockHalaa(const WorldObject* objRef)
 {
     if (GameObject* go = objRef->GetMap()->GetGameObject(m_capturePoint))
+    {
         go->SetLootState(GO_ACTIVATED);
+    }
     else
     {
         // if grid is unloaded, changing the saved slider value is enough

@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,15 +41,23 @@ Channel::Channel(const std::string& name, uint32 channel_id)
         m_flags |= CHANNEL_FLAG_GENERAL;                    // for all built-in channels
 
         if (ch->flags & CHANNEL_DBC_FLAG_TRADE)             // for trade channel
-            { m_flags |= CHANNEL_FLAG_TRADE; }
+        {
+            m_flags |= CHANNEL_FLAG_TRADE;
+        }
 
         if (ch->flags & CHANNEL_DBC_FLAG_CITY_ONLY2)        // for city only channels
-            { m_flags |= CHANNEL_FLAG_CITY; }
+        {
+            m_flags |= CHANNEL_FLAG_CITY;
+        }
 
         if (ch->flags & CHANNEL_DBC_FLAG_LFG)               // for LFG channel
-            { m_flags |= CHANNEL_FLAG_LFG; }
+        {
+            m_flags |= CHANNEL_FLAG_LFG;
+        }
         else                                                // for all other channels
-            { m_flags |= CHANNEL_FLAG_NOT_LFG; }
+        {
+            m_flags |= CHANNEL_FLAG_NOT_LFG;
+        }
     }
     else                                                    // it's custom channel
     {
@@ -99,7 +107,9 @@ void Channel::Join(Player* player, const char* password)
     }
 
     if (player->GetGuildId() && (GetFlags() == 0x38))
+    {
         return;
+    }
 
     // join channel
     player->JoinedChannel(this);
@@ -230,7 +240,9 @@ void Channel::KickOrBan(Player* player, const char* targetName, bool ban)
         MakePlayerBanned(&data, targetGuid, guid);
     }
     else
+    {
         MakePlayerKicked(&data, targetGuid, guid);
+    }
 
     SendToAll(&data);
     m_players.erase(targetGuid);
@@ -348,7 +360,9 @@ void Channel::SetMode(Player* player, const char* targetName, bool moderator, bo
 
     ObjectGuid targetGuid = target->GetObjectGuid();
     if (moderator && guid == m_ownerGuid && targetGuid == m_ownerGuid)
+    {
         return;
+    }
 
     if (!IsOn(targetGuid))
     {
@@ -379,9 +393,13 @@ void Channel::SetMode(Player* player, const char* targetName, bool moderator, bo
 
     // set channel moderator
     if (moderator)
+    {
         SetModerator(targetGuid, set);
+    }
     else
+    {
         SetMute(targetGuid, set);
+    }
 }
 
 void Channel::SetOwner(Player* player, const char* targetName)
@@ -570,30 +588,23 @@ void Channel::Moderate(Player* player)
 void Channel::Say(Player* player, const char* text, uint32 lang)
 {
     if (!text)
+    {
         return;
+    }
 
     ObjectGuid guid = player->GetObjectGuid();
     Player* plr = sObjectMgr.GetPlayer(guid);
-    bool speakInLocalDef = true;    // By Default everyone could chat in local defense
+    bool speakInLocalDef = true;    // By Default everyone could chat in local defense in tbc onwards
     bool speakInWorldDef = false;
     if (plr)
     {
         if (plr->isGameMaster())
         {
-//            speakInLocalDef = true;
             speakInWorldDef = true;
         }
-        
-        // Not applicable for TBC onwards
-        //HonorRankInfo honorInfo = plr->GetHonorRankInfo();
-        ////We can speak in local defense if we're above this rank (see .h file)
-        //if (honorInfo.rank >= SPEAK_IN_LOCALDEFENSE_RANK)
-        //    speakInLocalDef = true;
-        //// Are we not allowed to speak in WorldDefense at all?
-        //// if (honorInfo.rank >= SPEAK_IN_WORLDDEFENSE_RANK)
-        ////     speakInWorldDef = true;
+
     }
-    
+
     if (!IsOn(guid))
     {
         WorldPacket data;
@@ -620,7 +631,9 @@ void Channel::Say(Player* player, const char* text, uint32 lang)
 
     // send channel message
     if (sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_CHANNEL))
+    {
         lang = LANG_UNIVERSAL;
+    }
     WorldPacket data;
     ChatHandler::BuildChatPacket(data, CHAT_MSG_CHANNEL, text, Language(lang), player->GetChatTag(), guid, player->GetName(), ObjectGuid(), "", m_name.c_str());
     SendToAll(&data, !m_players[guid].IsModerator() ? guid : ObjectGuid());
@@ -692,7 +705,9 @@ void Channel::SetOwner(ObjectGuid guid, bool exclaim)
         // [] will re-add player after it possible removed
         PlayerList::iterator p_itr = m_players.find(m_ownerGuid);
         if (p_itr != m_players.end())
-            { p_itr->second.SetOwner(false); }
+        {
+            p_itr->second.SetOwner(false);
+        }
     }
 
     m_ownerGuid = guid;
@@ -731,7 +746,9 @@ void Channel::SendToAll(WorldPacket* data, ObjectGuid guid)
 void Channel::SendToOne(WorldPacket* data, ObjectGuid who)
 {
     if (Player* plr = ObjectMgr::GetPlayer(who))
-        { plr->GetSession()->SendPacket(data); }
+    {
+        plr->GetSession()->SendPacket(data);
+    }
 }
 
 void Channel::Voice(ObjectGuid /*guid1*/, ObjectGuid /*guid2*/)
@@ -819,7 +836,9 @@ void Channel::MakeChannelOwner(WorldPacket* data)
     std::string name = "";
 
     if (!sObjectMgr.GetPlayerNameByGUID(m_ownerGuid, name) || name.empty())
-        { name = "PLAYER_NOT_FOUND"; }
+    {
+        name = "PLAYER_NOT_FOUND";
+    }
 
     MakeNotifyPacket(data, CHAT_CHANNEL_OWNER_NOTICE);
     *data << ((IsConstant() || !m_ownerGuid) ? "Nobody" : name);
@@ -970,9 +989,13 @@ void Channel::JoinNotify(ObjectGuid guid)
     WorldPacket data;
 
     if (IsConstant())
+    {
         data.Initialize(SMSG_USERLIST_ADD, 8 + 1 + 1 + 4 + GetName().size() + 1);
+    }
     else
+    {
         data.Initialize(SMSG_USERLIST_UPDATE, 8 + 1 + 1 + 4 + GetName().size() + 1);
+    }
 
     data << ObjectGuid(guid);
     data << uint8(GetPlayerFlags(guid));

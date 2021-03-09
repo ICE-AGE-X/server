@@ -4,7 +4,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,11 +42,11 @@ class workerThread(threading.Thread):
             stInfo.dwFlags |= 0x00000001
             stInfo.wShowWindow = 7
             cFlags = subprocess.CREATE_NEW_CONSOLE
-            binName = "movemap-generator.exe"
+            binName = "mmap-extractor.exe"
         else:
             stInfo = None
             cFlags = 0
-            binName = "./MoveMapGen"
+            binName = "./mmap-extractor"
         if self.mapID == 0:
             retcode = subprocess.call([binName, "%u" % (self.mapID), "--silent",  "--offMeshInput", "offmesh.txt"], startupinfo=stInfo, creationflags=cFlags)
         else:
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     cpu = cpu_count() - 0 # You can reduce the load by putting 1 instead of 0 if you need to free 1 core/cpu
     if cpu < 1:
         cpu = 1
-    print "I will always maintain %u MoveMapGen tasks running in //\n" % (cpu)
+    print "I will always maintain %u mmap-extractor tasks running in //\n" % (cpu)
     while (len(mapList) > 0):
         if (threading.active_count() <= cpu):
             workerThread(mapList.popleft()).start()

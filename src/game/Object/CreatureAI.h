@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ enum CanCastResult
     CAST_FAIL_POWER             = 5,
     CAST_FAIL_STATE             = 6,
     CAST_FAIL_TARGET_AURA       = 7,
-    CAST_FAIL_NO_LOS            = 8
+    CAST_FAIL_NO_LOS            = 8,
 };
 
 enum CastFlags
@@ -112,7 +112,9 @@ class CreatureAI
             m_combatMovement(0),
             m_attackDistance(0.0f),
             m_attackAngle(0.0f)
-        { AddCombatMovementFlags(COMBAT_MOVEMENT_SCRIPT); }
+            {
+                AddCombatMovementFlags(COMBAT_MOVEMENT_SCRIPT);
+            }
 
         virtual ~CreatureAI();
 
@@ -145,7 +147,7 @@ class CreatureAI
          * Called for reaction at stopping attack at no attackers or targets
          * This is called usually in Unit::SelectHostileTarget, if no more target exists
          */
-        virtual void EnterEvadeMode() { m_creature->ResetPlayerDamageReq(); }
+        virtual void EnterEvadeMode();
 
         /**
          * Called at reaching home after MoveTargetedHome
@@ -323,7 +325,7 @@ class CreatureAI
         bool IsCombatMovement() const { return m_combatMovement != 0; }
         void AddCombatMovementFlags(uint32 cmFlags);
         void ClearCombatMovementFlags(uint32 cmFlags);
-        
+
         ///== Event Handling ===============================
 
         /*

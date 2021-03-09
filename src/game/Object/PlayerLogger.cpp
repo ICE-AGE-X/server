@@ -2,7 +2,7 @@
 * MaNGOS is a full featured server for World of Warcraft, supporting
 * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
 *
-* Copyright (C) 2005-2015  MaNGOS project <http://getmangos.eu>
+* Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -24,14 +24,18 @@
 
 #include "PlayerLogger.h"
 #include "ObjectAccessor.h"
+#include "ObjectGuid.h"
+#include "Player.h"
 #include "Database/DatabaseEnv.h"
 #include "World.h"
 #include "Log.h"
 
-PlayerLogger::PlayerLogger(ObjectGuid guid) : logActiveMask(0), playerGuid(guid.GetCounter())
+PlayerLogger::PlayerLogger(ObjectGuid const & guid) : logActiveMask(0), playerGuid(guid.GetCounter())
 {
     for (uint8 i = 0; i < MAX_PLAYER_LOG_ENTITIES; ++i)
+    {
         data[i] = NULL;
+    }
 }
 
 PlayerLogger::~PlayerLogger()
@@ -49,7 +53,9 @@ PlayerLogger::~PlayerLogger()
 void PlayerLogger::Initialize(PlayerLogEntity entity, uint32 maxLength)
 {
     if (data[entity])
+    {
         data[entity]->clear();
+    }
     else
     {
         if (IsLoggingActive(entity))
@@ -81,7 +87,9 @@ void PlayerLogger::Initialize(PlayerLogEntity entity, uint32 maxLength)
         }
     }
     if (maxLength)
+    {
         data[entity]->reserve(maxLength);
+    }
 }
 
 void PlayerLogger::Clean(PlayerLogMask mask)
@@ -89,7 +97,9 @@ void PlayerLogger::Clean(PlayerLogMask mask)
     for (uint8 i = 0; i < MAX_PLAYER_LOG_ENTITIES; ++i)
     {
         if ((mask & CalcLogMask(PlayerLogEntity(i))) == 0)    // note that actual data presence is not checked here!
+        {
             continue;
+        }
         if (data[i] == NULL)
         {
             sLog.outError("PlayerLogging: flag for logtype %u set but no init was called! Ignored.", i);
@@ -107,10 +117,14 @@ bool PlayerLogger::SaveToDB(PlayerLogMask mask, bool removeSaved, bool insideTra
     for (uint8 i = 0; i < MAX_PLAYER_LOG_ENTITIES; ++i)
     {
         if ((mask & CalcLogMask(PlayerLogEntity(i))) == 0 || data[i] == NULL)
+        {
             continue;
+        }
 
         if (!insideTransaction)
+        {
             CharacterDatabase.BeginTransaction();
+        }
         written = true;
         for (uint8 id = 0; id < data[i]->size(); ++id)
         {
@@ -120,7 +134,7 @@ bool PlayerLogger::SaveToDB(PlayerLogMask mask, bool removeSaved, bool insideTra
                 {
                 PlayerLogDamage info = *(PlayerLogDamage*)(&data[i]->at(id));
                 static SqlStatementID dmgGetStmt;
-                SqlStatement stmt = CharacterDatabase.CreateStatement(dmgGetStmt, "INSERT INTO playerlog_damage_get SET guid = ?, `time` = ?, aggressor = ?, isPlayer = ?, damage = ?, spell = ?");
+                SqlStatement stmt = CharacterDatabase.CreateStatement(dmgGetStmt, "INSERT INTO `playerlog_damage_get` SET `guid` = ?, `time` = ?, `aggressor` = ?, `isPlayer` = ?, `damage` = ?, `spell` = ?");
                 stmt.addUInt32(playerGuid);
                 stmt.addUInt64(info.timestamp + serverStart);
                 stmt.addUInt32(info.GetId());
@@ -134,7 +148,7 @@ bool PlayerLogger::SaveToDB(PlayerLogMask mask, bool removeSaved, bool insideTra
                 {
                 PlayerLogDamage info = *(PlayerLogDamage*)(&data[i]->at(id));
                 static SqlStatementID dmgDoneStmt;
-                SqlStatement stmt = CharacterDatabase.CreateStatement(dmgDoneStmt, "INSERT INTO playerlog_damage_done SET guid = ?, `time` = ?, victim = ?, isPlayer = ?, damage = ?, spell = ?");
+                SqlStatement stmt = CharacterDatabase.CreateStatement(dmgDoneStmt, "INSERT INTO `playerlog_damage_done` SET `guid` = ?, `time` = ?, `victim` = ?, `isPlayer` = ?, `damage` = ?, `spell` = ?");
                 stmt.addUInt32(playerGuid);
                 stmt.addUInt64(info.timestamp + serverStart);
                 stmt.addUInt32(info.GetId());
@@ -148,7 +162,7 @@ bool PlayerLogger::SaveToDB(PlayerLogMask mask, bool removeSaved, bool insideTra
                 {
                 PlayerLogLooting info = *(PlayerLogLooting*)(&data[i]->at(id));
                 static SqlStatementID lootStmt;
-                SqlStatement stmt = CharacterDatabase.CreateStatement(lootStmt, "INSERT INTO playerlog_looting SET guid = ?, `time`= ?, item = ?, sourceType = ?, sourceEntry = ?");
+                SqlStatement stmt = CharacterDatabase.CreateStatement(lootStmt, "INSERT INTO `playerlog_looting` SET `guid` = ?, `time`= ?, `item` = ?, `sourceType` = ?, `sourceEntry` = ?");
                 stmt.addUInt32(playerGuid);
                 stmt.addUInt64(info.timestamp + serverStart);
                 stmt.addUInt32(info.GetItemEntry());
@@ -161,7 +175,7 @@ bool PlayerLogger::SaveToDB(PlayerLogMask mask, bool removeSaved, bool insideTra
                 {
                 PlayerLogTrading info = *(PlayerLogTrading*)(&data[i]->at(id));
                 static SqlStatementID tradeStmt;
-                SqlStatement stmt = CharacterDatabase.CreateStatement(tradeStmt, "INSERT INTO playerlog_trading SET guid = ?, `time`= ?, itemEntry = ?, itemGuid = ?, aquired = ?, partner = ?");
+                SqlStatement stmt = CharacterDatabase.CreateStatement(tradeStmt, "INSERT INTO `playerlog_trading` SET `guid` = ?, `time`= ?, `itemEntry` = ?, `itemGuid` = ?, `aquired` = ?, `partner` = ?");
                 stmt.addUInt32(playerGuid);
                 stmt.addUInt64(info.timestamp + serverStart);
                 stmt.addUInt32(info.GetItemEntry());
@@ -175,7 +189,7 @@ bool PlayerLogger::SaveToDB(PlayerLogMask mask, bool removeSaved, bool insideTra
                 {
                 PlayerLogKilling info = *(PlayerLogKilling*)(&data[i]->at(id));
                 static SqlStatementID killStmt;
-                SqlStatement stmt = CharacterDatabase.CreateStatement(killStmt, "INSERT INTO playerlog_killing SET guid = ?, `time`= ?, iskill = ?, entry = ?, victimGuid = ?");
+                SqlStatement stmt = CharacterDatabase.CreateStatement(killStmt, "INSERT INTO `playerlog_killing` SET `guid` = ?, `time`= ?, `iskill` = ?, `entry` = ?, `victimGuid` = ?");
                 stmt.addUInt32(playerGuid);
                 stmt.addUInt64(info.timestamp + serverStart);
                 stmt.addBool(info.IsKill());
@@ -188,7 +202,7 @@ bool PlayerLogger::SaveToDB(PlayerLogMask mask, bool removeSaved, bool insideTra
                 {
                 PlayerLogPosition info = *(PlayerLogPosition*)(&data[i]->at(id));
                 static SqlStatementID posStmt;
-                SqlStatement stmt = CharacterDatabase.CreateStatement(posStmt, "INSERT INTO playerlog_position SET guid = ?, `time`= ?, map = ?, posx = ?, posy = ?, posz = ?");
+                SqlStatement stmt = CharacterDatabase.CreateStatement(posStmt, "INSERT INTO `playerlog_position` SET `guid` = ?, `time`= ?, `map` = ?, `posx` = ?, `posy` = ?, `posz` = ?");
                 stmt.addUInt32(playerGuid);
                 stmt.addUInt64(info.timestamp + serverStart);
                 stmt.addUInt16(info.map);
@@ -202,7 +216,7 @@ bool PlayerLogger::SaveToDB(PlayerLogMask mask, bool removeSaved, bool insideTra
                 {
                 PlayerLogProgress info = *(PlayerLogProgress*)(&data[i]->at(id));
                 static SqlStatementID progStmt;
-                SqlStatement stmt = CharacterDatabase.CreateStatement(progStmt, "INSERT INTO playerlog_progress SET guid = ?, `time` = ?, type = ?, level = ?, data = ?, map = ?, posx = ?, posy = ?, posz = ?");
+                SqlStatement stmt = CharacterDatabase.CreateStatement(progStmt, "INSERT INTO `playerlog_progress` SET `guid` = ?, `time` = ?, `type` = ?, `level` = ?, `data` = ?, `map` = ?, `posx` = ?, `posy` = ?, `posz` = ?");
                 stmt.addUInt32(playerGuid);
                 stmt.addUInt64(info.timestamp + serverStart);
                 stmt.addUInt8(info.progressType);
@@ -218,10 +232,14 @@ bool PlayerLogger::SaveToDB(PlayerLogMask mask, bool removeSaved, bool insideTra
         }
         Stop(PlayerLogEntity(i));
         if (removeSaved)
+        {
             data[i]->clear();
+        }
     }
     if (written && !insideTransaction)
+    {
         CharacterDatabase.CommitTransaction();
+    }
 
     return written;
 }
@@ -252,7 +270,7 @@ void PlayerLogger::StartLogging(PlayerLogEntity entity)
 uint32 PlayerLogger::Stop(PlayerLogEntity entity)
 {
     SetLogActiveMask(entity, false);
-    sLog.outDebug("PlayerLogger: logging type %u stopped for player %u at %u records.", entity, playerGuid, data[entity]->size());
+    sLog.outDebug("PlayerLogger: logging type %u stopped for player %u at %lu records.", entity, playerGuid, data[entity]->size());
     return data[entity]->size();
 }
 
@@ -261,7 +279,9 @@ void PlayerLogger::CheckAndTruncate(PlayerLogMask mask, uint32 maxRecords)
     for (uint8 i = 0; i < MAX_PLAYER_LOG_ENTITIES; ++i)
     {
         if ((mask & CalcLogMask(PlayerLogEntity(i))) == 0)
+        {
             continue;
+        }
         if (data[i]->size() > maxRecords)
         {
             switch (PlayerLogEntity(i))
@@ -314,10 +334,12 @@ void PlayerLogger::CheckAndTruncate(PlayerLogMask mask, uint32 maxRecords)
     }
 }
 
-void PlayerLogger::LogDamage(bool done, uint16 damage, uint16 heal, ObjectGuid unitGuid, uint16 spell)
+void PlayerLogger::LogDamage(bool done, uint16 damage, uint16 heal, ObjectGuid const & unitGuid, uint16 spell)
 {
     if (!IsLoggingActive(done ? PLAYER_LOGMASK_DAMAGE_DONE : PLAYER_LOGMASK_DAMAGE_GET))
+    {
         return;
+    }
     PlayerLogDamage log = PlayerLogDamage(sWorld.GetUptime());
     log.dmgUnit = (unitGuid.GetCounter() == playerGuid) ? 0 : (unitGuid.IsPlayer() ? unitGuid.GetCounter() : unitGuid.GetEntry());
     log.SetCreature(unitGuid.IsCreatureOrPet());
@@ -326,10 +348,12 @@ void PlayerLogger::LogDamage(bool done, uint16 damage, uint16 heal, ObjectGuid u
     ((std::vector<PlayerLogDamage>*)(data[done ? PLAYER_LOG_DAMAGE_DONE : PLAYER_LOG_DAMAGE_GET]))->push_back(log);
 }
 
-void PlayerLogger::LogLooting(LootSourceType type, ObjectGuid droppedBy, ObjectGuid itemGuid, uint32 id)
+void PlayerLogger::LogLooting(LootSourceType type, ObjectGuid const & droppedBy, ObjectGuid const & itemGuid, uint32 id)
 {
     if (!IsLoggingActive(PLAYER_LOGMASK_LOOTING))
+    {
         return;
+    }
     PlayerLogLooting log = PlayerLogLooting(sWorld.GetUptime());
     log.itemEntry = itemGuid.GetEntry();
     log.SetLootSourceType(type);
@@ -338,10 +362,12 @@ void PlayerLogger::LogLooting(LootSourceType type, ObjectGuid droppedBy, ObjectG
     ((std::vector<PlayerLogLooting>*)(data[PLAYER_LOG_LOOTING]))->push_back(log);
 }
 
-void PlayerLogger::LogTrading(bool aquire, ObjectGuid partner, ObjectGuid itemGuid)
+void PlayerLogger::LogTrading(bool aquire, ObjectGuid const & partner, ObjectGuid const & itemGuid)
 {
     if (!IsLoggingActive(PLAYER_LOGMASK_TRADE))
+    {
         return;
+    }
     PlayerLogTrading log = PlayerLogTrading(sWorld.GetUptime());
     log.itemEntry = itemGuid.GetEntry();
     log.SetItemAquired(aquire);
@@ -350,10 +376,12 @@ void PlayerLogger::LogTrading(bool aquire, ObjectGuid partner, ObjectGuid itemGu
     ((std::vector<PlayerLogTrading>*)(data[PLAYER_LOG_TRADE]))->push_back(log);
 }
 
-void PlayerLogger::LogKilling(bool killedEnemy, ObjectGuid unitGuid)
+void PlayerLogger::LogKilling(bool killedEnemy, ObjectGuid const & unitGuid)
 {
     if (!IsLoggingActive(PLAYER_LOGMASK_KILL))
+    {
         return;
+    }
     PlayerLogKilling log = PlayerLogKilling(sWorld.GetUptime());
     log.unitEntry = unitGuid.GetEntry();
     log.SetKill(killedEnemy);
@@ -364,7 +392,9 @@ void PlayerLogger::LogKilling(bool killedEnemy, ObjectGuid unitGuid)
 void PlayerLogger::LogPosition()
 {
     if (!IsLoggingActive(PLAYER_LOGMASK_POSITION))
+    {
         return;
+    }
     if (Player* pl = GetPlayer())
     {
         PlayerLogPosition log = PlayerLogPosition(sWorld.GetUptime());
@@ -376,7 +406,9 @@ void PlayerLogger::LogPosition()
 void PlayerLogger::LogProgress(ProgressType type, uint8 achieve, uint16 misc)
 {
     if (!IsLoggingActive(PLAYER_LOGMASK_PROGRESS))
+    {
         return;
+    }
     if (Player* pl = GetPlayer())
     {
         PlayerLogProgress log = PlayerLogProgress(sWorld.GetUptime());
@@ -391,19 +423,27 @@ void PlayerLogger::LogProgress(ProgressType type, uint8 achieve, uint16 misc)
 void PlayerLogger::SetLogActiveMask(PlayerLogEntity entity, bool on)
 {
     if (on)
+    {
         logActiveMask |= CalcLogMask(entity);
+    }
     else
+    {
         logActiveMask &= ~uint8(CalcLogMask(entity));
+    }
 }
 
 Player* PlayerLogger::GetPlayer() const
 {
-    Player* pl = ObjectAccessor::FindPlayer(ObjectGuid(HIGHGUID_PLAYER, playerGuid), true);
+    Player* pl = sObjectAccessor.FindPlayer(ObjectGuid(HIGHGUID_PLAYER, playerGuid), true);
     if (!pl)
-        pl = ObjectAccessor::FindPlayer(ObjectGuid(HIGHGUID_CORPSE, playerGuid), true);
+    {
+        pl = sObjectAccessor.FindPlayer(ObjectGuid(HIGHGUID_CORPSE, playerGuid), true);
+    }
 
     if (!pl)
+    {
         sLog.outError("PlayerLogger: cannot get current player! Ignoring the record.");
+    }
 
     return pl;
 }

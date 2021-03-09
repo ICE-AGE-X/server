@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,9 @@ void WorldSession::HandleInspectArenaTeamsOpcode(WorldPacket& recv_data)
             if (uint32 a_id = plr->GetArenaTeamId(i))
             {
                 if (ArenaTeam* at = sObjectMgr.GetArenaTeamById(a_id))
+                {
                     at->InspectStats(this, plr->GetObjectGuid());
+                }
             }
         }
     }
@@ -75,7 +77,9 @@ void WorldSession::HandleArenaTeamRosterOpcode(WorldPacket& recv_data)
     recv_data >> ArenaTeamId;
 
     if (ArenaTeam* arenateam = sObjectMgr.GetArenaTeamById(ArenaTeamId))
+    {
         arenateam->Roster(this);
+    }
 }
 
 void WorldSession::HandleArenaTeamInviteOpcode(WorldPacket& recv_data)
@@ -92,9 +96,11 @@ void WorldSession::HandleArenaTeamInviteOpcode(WorldPacket& recv_data)
     if (!Invitedname.empty())
     {
         if (!normalizePlayerName(Invitedname))
+        {
             return;
+        }
 
-        player = ObjectAccessor::FindPlayerByName(Invitedname.c_str());
+        player = sObjectAccessor.FindPlayerByName(Invitedname.c_str());
     }
 
     if (!player)
@@ -118,7 +124,9 @@ void WorldSession::HandleArenaTeamInviteOpcode(WorldPacket& recv_data)
 
     // OK result but not send invite
     if (player->GetSocial()->HasIgnore(GetPlayer()->GetObjectGuid()))
+    {
         return;
+    }
 
     if (!sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_INTERACTION_GUILD) && player->GetTeam() != GetPlayer()->GetTeam())
     {
@@ -162,7 +170,9 @@ void WorldSession::HandleArenaTeamAcceptOpcode(WorldPacket & /*recv_data*/)
 
     ArenaTeam* at = sObjectMgr.GetArenaTeamById(_player->GetArenaTeamIdInvited());
     if (!at)
+    {
         return;
+    }
 
     if (_player->GetArenaTeamId(at->GetSlot()))
     {
@@ -206,7 +216,9 @@ void WorldSession::HandleArenaTeamLeaveOpcode(WorldPacket& recv_data)
 
     ArenaTeam* at = sObjectMgr.GetArenaTeamById(ArenaTeamId);
     if (!at)
+    {
         return;
+    }
 
     if (_player->GetObjectGuid() == at->GetCaptainGuid() && at->GetMembersSize() > 1)
     {
@@ -242,10 +254,14 @@ void WorldSession::HandleArenaTeamDisbandOpcode(WorldPacket& recv_data)
     if (ArenaTeam* at = sObjectMgr.GetArenaTeamById(ArenaTeamId))
     {
         if (at->GetCaptainGuid() != _player->GetObjectGuid())
+        {
             return;
+        }
 
         if (at->IsFighting())
+        {
             return;
+        }
 
         at->Disband(this);
         delete at;
@@ -264,7 +280,9 @@ void WorldSession::HandleArenaTeamRemoveOpcode(WorldPacket& recv_data)
 
     ArenaTeam* at = sObjectMgr.GetArenaTeamById(ArenaTeamId);
     if (!at)                                                // arena team not found
+    {
         return;
+    }
 
     if (at->GetCaptainGuid() != _player->GetObjectGuid())
     {
@@ -273,7 +291,9 @@ void WorldSession::HandleArenaTeamRemoveOpcode(WorldPacket& recv_data)
     }
 
     if (!normalizePlayerName(name))
+    {
         return;
+    }
 
     ArenaTeamMember* member = at->GetMember(name);
     if (!member)                                            // member not found
@@ -306,7 +326,9 @@ void WorldSession::HandleArenaTeamLeaderOpcode(WorldPacket& recv_data)
 
     ArenaTeam* at = sObjectMgr.GetArenaTeamById(ArenaTeamId);
     if (!at)                                                // arena team not found
+    {
         return;
+    }
 
     if (at->GetCaptainGuid() != _player->GetObjectGuid())
     {
@@ -315,7 +337,9 @@ void WorldSession::HandleArenaTeamLeaderOpcode(WorldPacket& recv_data)
     }
 
     if (!normalizePlayerName(name))
+    {
         return;
+    }
 
     ArenaTeamMember* member = at->GetMember(name);
     if (!member)                                            // member not found
@@ -325,7 +349,9 @@ void WorldSession::HandleArenaTeamLeaderOpcode(WorldPacket& recv_data)
     }
 
     if (at->GetCaptainGuid() == member->guid)               // target player already captain
+    {
         return;
+    }
 
     at->SetCaptain(member->guid);
 

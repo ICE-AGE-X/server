@@ -2,7 +2,7 @@
  * MaNGOS is a full featured server for World of Warcraft, supporting
  * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
  *
- * Copyright (C) 2005-2017  MaNGOS project <https://getmangos.eu>
+ * Copyright (C) 2005-2021 MaNGOS <https://getmangos.eu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,24 +30,31 @@
 #ifdef PACKAGE
 #undef PACKAGE
 #endif // PACKAGE
+
 #ifdef PACKAGE_BUGREPORT
 #undef PACKAGE_BUGREPORT
 #endif // PACKAGE_BUGREPORT
+
 #ifdef PACKAGE_NAME
 #undef PACKAGE_NAME
 #endif // PACKAGE_NAME
+
 #ifdef PACKAGE_STRING
 #undef PACKAGE_STRING
 #endif // PACKAGE_STRING
+
 #ifdef PACKAGE_TARNAME
 #undef PACKAGE_TARNAME
 #endif // PACKAGE_TARNAME
+
 #ifdef PACKAGE_VERSION
 #undef PACKAGE_VERSION
 #endif // PACKAGE_VERSION
+
 #ifdef VERSION
 #undef VERSION
 #endif // VERSION
+
 #undef PACKAGE
 #undef PACKAGE_BUGREPORT
 #undef PACKAGE_NAME
@@ -65,6 +72,7 @@
 #  pragma warning(disable:4244)                             // 'argument' : conversion from 'type1' to 'type2', possible loss of data
 #  pragma warning(disable:4355)                             // 'this' : used in base member initializer list
 #endif                                                      // __SHOW_STUPID_WARNINGS__
+
 #endif                                                      // __GNUC__
 
 #include "Utilities/UnorderedMapSet.h"
@@ -76,6 +84,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <assert.h>
+#include "ServerDefines.h"
 
 #if defined(__sun__)
 #include <ieeefp.h> // finite() on Solaris
@@ -131,7 +140,7 @@ typedef off_t ACE_OFF_T;
 
 #  define I32FMT "%08I32X"
 #  define I64FMT "%016I64X"
-#  define snprintf _snprintf
+#
 #  define vsnprintf _vsnprintf
 #  define finite(X) _finite(X)
 
@@ -200,36 +209,6 @@ enum TimeConstants
     MONTH  = DAY * 30,
     YEAR   = MONTH * 12,
     IN_MILLISECONDS = 1000
-};
-
-/**
- * @brief
- *
- */
-enum AccountTypes
-{
-    SEC_PLAYER         = 0,
-    SEC_MODERATOR      = 1,
-    SEC_GAMEMASTER     = 2,
-    SEC_ADMINISTRATOR  = 3,
-    SEC_CONSOLE        = 4                                  // must be always last in list, accounts must have less security level always also
-};
-
-/**
- * @brief Used in mangosd/realmd
- *
- */
-enum RealmFlags
-{
-    REALM_FLAG_NONE         = 0x00,
-    REALM_FLAG_INVALID      = 0x01,
-    REALM_FLAG_OFFLINE      = 0x02,
-    REALM_FLAG_SPECIFYBUILD = 0x04,                         // client will show realm version in RealmList screen in form "RealmName (major.minor.revision.build)"
-    REALM_FLAG_UNK1         = 0x08,
-    REALM_FLAG_UNK2         = 0x10,
-    REALM_FLAG_NEW_PLAYERS  = 0x20,
-    REALM_FLAG_RECOMMENDED  = 0x40,
-    REALM_FLAG_FULL         = 0x80
 };
 
 /**
