@@ -22,50 +22,54 @@
  * and lore are copyrighted by Blizzard Entertainment, Inc.
  */
 
-#ifndef MANGOS_H_SOAPTHREAD
-#define MANGOS_H_SOAPTHREAD
+#include "GameTime.h"
+#include "Timer.h"
 
-#include "Common.h"
-
-#include <mutex>
-#include <future>
-#include <string>
-
-void process_message(struct soap* soap_message);
-void SoapThread(const std::string& host, uint16 port);
-
-class SOAPCommand
+namespace GameTime
 {
-public:
-    SOAPCommand() : m_success(false) { }
-    ~SOAPCommand() { }
+    time_t const StartTime = time(nullptr);
 
-    void appendToPrintBuffer(std::string msg)
+    time_t GameTime = 0;
+    uint32 GameMSTime = 0;
+
+    std::chrono::system_clock::time_point GameTimeSystemPoint = std::chrono::system_clock::time_point::min();
+    std::chrono::steady_clock::time_point GameTimeSteadyPoint = std::chrono::steady_clock::time_point::min();
+
+    time_t GetStartTime()
     {
-        m_printBuffer += msg;
+        return StartTime;
     }
 
-    void setCommandSuccess(bool val)
+    time_t GetGameTime()
     {
-        m_success = val;
-        finishedPromise.set_value();
+        return GameTime;
     }
 
-    bool hasCommandSucceeded() const
+    uint32 GetGameTimeMS()
     {
-        return m_success;
+        return GameMSTime;
     }
 
-    static void print(void* callbackArg, const char* msg)
+    std::chrono::system_clock::time_point GetGameTimeSystemPoint()
     {
-        ((SOAPCommand*)callbackArg)->appendToPrintBuffer(msg);
+        return GameTimeSystemPoint;
     }
 
-    static void commandFinished(void* callbackArg, bool success);
+    std::chrono::steady_clock::time_point GetGameTimeSteadyPoint()
+    {
+        return GameTimeSteadyPoint;
+    }
 
-    bool m_success;
-    std::string m_printBuffer;
-    std::promise<void> finishedPromise;
-};
+    uint32 GetUptime()
+    {
+        return uint32(GameTime - StartTime);
+    }
 
-#endif
+    void UpdateGameTimers()
+    {
+        GameTime = time(nullptr);
+        GameMSTime = getMSTime();
+        GameTimeSystemPoint = std::chrono::system_clock::now();
+        GameTimeSteadyPoint = std::chrono::steady_clock::now();
+    }
+}

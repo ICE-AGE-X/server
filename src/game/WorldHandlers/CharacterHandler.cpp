@@ -46,6 +46,8 @@
 #include "Language.h"
 #include "Chat.h"
 #include "SpellMgr.h"
+#include "GameTime.h"
+#include "Timer.h"
 #ifdef ENABLE_ELUNA
 #include "LuaEngine.h"
 #endif /* ENABLE_ELUNA */
@@ -104,7 +106,7 @@ bool LoginQueryHolder::Initialize()
                      "`position_x`, `position_y`, `position_z`, `map`, `orientation`, `taximask`, `cinematic`, `totaltime`, `leveltime`, `rest_bonus`, `logout_time`, `is_logout_resting`, `resettalents_cost`,"
                      "`resettalents_time`, `trans_x`, `trans_y`, `trans_z`, `trans_o`, `transguid`, `extra_flags`, `stable_slots`, `at_login`, `zone`, `online`, `death_expire_time`, `taxi_path`, `dungeon_difficulty`,"
                      "`arenaPoints`, `totalHonorPoints`, `todayHonorPoints`, `yesterdayHonorPoints`, `totalKills`, `todayKills`, `yesterdayKills`, `chosenTitle`, `watchedFaction`, `drunk`,"
-                     "`health`, `power1`, `power2`, `power3`, `power4`, `power5`, `exploredZones`, `equipmentCache`, `ammoId`, `knownTitles`, `actionBars` FROM `characters` WHERE `guid` = '%u'", m_guid.GetCounter());
+                     "`health`, `power1`, `power2`, `power3`, `power4`, `power5`, `exploredZones`, `equipmentCache`, `ammoId`, `knownTitles`, `actionBars`, `createdDate` FROM `characters` WHERE `guid` = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADGROUP,           "SELECT `groupId` FROM group_member WHERE `memberGuid` ='%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADBOUNDINSTANCES,  "SELECT `id`, `permanent`, `map`, `difficulty`, `resettime` FROM `character_instance` LEFT JOIN `instance` ON `instance` = `id` WHERE `guid` = '%u'", m_guid.GetCounter());
     res &= SetPQuery(PLAYER_LOGIN_QUERY_LOADAURAS,           "SELECT `caster_guid`,`item_guid`,`spell`,`stackcount`,`remaincharges`,`basepoints0`,`basepoints1`,`basepoints2`,`periodictime0`,`periodictime1`,`periodictime2`,`maxduration`,`remaintime`,`effIndexMask` FROM `character_aura` WHERE `guid` = '%u'", m_guid.GetCounter());
@@ -196,7 +198,7 @@ class CharacterHandler
             // The bot's WorldSession is owned by the bot's Player object
             // The bot's WorldSession is deleted by PlayerbotMgr::LogoutPlayerBot
             uint32 botAccountId = lqh->GetAccountId();
-            WorldSession *botSession = new WorldSession(botAccountId, NULL, SEC_PLAYER, 0,0, LOCALE_enUS);
+            WorldSession *botSession = new WorldSession(botAccountId, NULL, SEC_PLAYER, 1,0, LOCALE_enUS);
             botSession->m_Address = "bot";
             botSession->HandlePlayerLogin(lqh); // will delete lqh
             Player* bot = botSession->GetPlayer();
@@ -487,6 +489,10 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recv_data)
     }
 
     Player* pNewChar = new Player(this);
+    // Sets the createdTime of the character which is UNIX timestamp
+    uint32 createdDate = GetUnixTimeStamp(); // Unix Timestamp in seconds
+    pNewChar->SetCreatedDate(createdDate); // TODO get currentTimeStamp for createdTime
+
     if (!pNewChar->Create(sObjectMgr.GeneratePlayerLowGuid(), name, race_, class_, gender, skin, face, hairStyle, hairColor, facialHair, outfitId))
     {
         // Player not create (race/class problem?)
@@ -852,7 +858,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
 #endif
 
     /* Sync player's in-game time with server time */
-    pCurrChar->SetInGameTime(WorldTimer::getMSTime());
+    pCurrChar->SetInGameTime(GameTime::GetGameTimeMS());
 
     /* Send logon notification to player's group
      * This is sent after player is added to the world so that player receives it too */
